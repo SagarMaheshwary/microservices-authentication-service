@@ -4,6 +4,7 @@ go 1.21.1
 
 require (
 	github.com/gofor-little/env v1.0.17
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.33.0
 )

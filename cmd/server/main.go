@@ -5,42 +5,57 @@ import (
 	"log"
 	"net"
 	"path"
-	"path/filepath"
-	"runtime"
-	"strconv"
 
 	"github.com/gofor-little/env"
-	"github.com/sagarmaheshwary/microservices-authentication-service/internal/auth"
+	"github.com/sagarmaheshwary/microservices-authentication-service/config"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/server"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/helpers"
 	pb "github.com/sagarmaheshwary/microservices-authentication-service/proto/auth"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	if err := env.Load(path.Join(RootDir(), "..", ".env")); err != nil {
-		log.Fatalln("Unable to load env!", err)
+	loadenv()
+
+	client.InitClient()
+
+	grpcServerConf := config.GetgrpcServer()
+
+	address := fmt.Sprintf("%v:%d", grpcServerConf.Host, grpcServerConf.Port)
+
+	initgrpcServer(newListener(address))
+}
+
+func loadenv() {
+	envPath := path.Join(helpers.RootDir(), "..", ".env")
+
+	if err := env.Load(envPath); err != nil {
+		log.Fatalf("Unable to load env from %q: %v", envPath, err)
 	}
 
-	host := env.Get("GRPC_HOST", "localhost")
-	port, _ := strconv.Atoi(env.Get("GRPC_PORT", "5001"))
+	config.InitConfig()
+}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("%v:%d", host, port))
+func newListener(address string) *net.Listener {
+	listener, err := net.Listen("tcp", address)
 
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Fatalf("Failed to create tcp listner on %q: %v", address, err)
 	}
 
+	log.Printf("Starting tcp listener on %q", address)
+
+	return &listener
+}
+
+func initgrpcServer(listener *net.Listener) {
 	var opts []grpc.ServerOption
 
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterAuthServiceServer(grpcServer, auth.NewServer())
+	pb.RegisterAuthServiceServer(grpcServer, server.NewAuthServer())
 
-	log.Printf("gRPC server started on \"%s:%d\"", host, port)
+	log.Printf("grpc server started.")
 
-	grpcServer.Serve(listener)
-}
-
-func RootDir() string {
-	_, b, _, _ := runtime.Caller(0)
-	d := path.Join(path.Dir(b))
-	return filepath.Dir(d)
+	grpcServer.Serve(*listener)
 }

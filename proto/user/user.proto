@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "github.com/SagarMaheshwary/microservices-authentication-service/proto/user";
+
+service UserService {
+  rpc FindById(FindByIdRequest) returns (FindByIdResponse) {}
+  rpc FindByCredential(FindByCredentialRequest) returns (FindByCredentialResponse) {}
+}
+
+message User {
+  int32 id = 1;
+  string name = 2;
+  string email = 3;
+  optional string image = 4;
+  optional string created_at = 5;
+  optional string updated_at = 6;
+}
+
+message FindByIdRequest {
+  int32 id = 1;
+}
+
+message FindByIdResponse {
+  string message = 1;
+  FindByIdResponseData data = 2;
+}
+
+message FindByIdResponseData {
+  User user = 1;
+}
+
+message FindByCredentialRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message FindByCredentialResponse {
+  string message = 1;
+  FindByCredentialResponseData data = 2;
+}
+
+message FindByCredentialResponseData {
+  User user = 1;
+}
