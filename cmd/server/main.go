@@ -20,9 +20,9 @@ func main() {
 
 	client.InitClient()
 
-	grpcServerConf := config.GetgrpcServer()
+	grpcServerConfig := config.GetgrpcServer()
 
-	address := fmt.Sprintf("%v:%d", grpcServerConf.Host, grpcServerConf.Port)
+	address := fmt.Sprintf("%v:%d", grpcServerConfig.Host, grpcServerConfig.Port)
 
 	initgrpcServer(newListener(address))
 }

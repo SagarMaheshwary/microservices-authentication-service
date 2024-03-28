@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"time"
 )
 
 var conf *Config
@@ -26,7 +25,7 @@ type grpcClient struct {
 
 type jwt struct {
 	Secret string
-	Expiry time.Time
+	Expiry int
 }
 
 func InitConfig() {
@@ -49,7 +48,7 @@ func InitConfig() {
 		},
 		JWT: &jwt{
 			Secret: Getenv("JWT_SECRET", ""),
-			Expiry: time.Now().Add(time.Duration(expiry) * time.Second),
+			Expiry: expiry,
 		},
 		GRPCClient: &grpcClient{
 			UserServiceurl: Getenv("GRPC_USER_SERVICE_URL", "localhost:5000"),

@@ -6,6 +6,8 @@ option go_package = "github.com/SagarMaheshwary/microservices-authentication-ser
 
 service AuthService {
   rpc Login(LoginRequest) returns (LoginResponse) {}
+  rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse) {};
+  rpc Logout(LogoutRequest) returns (LogoutResponse) {};
 }
 
 message User {
@@ -30,4 +32,30 @@ message LoginResponse {
 message LoginResponseData {
   string token = 1;
   User user = 2;
+}
+
+message VerifyTokenRequest {
+  //
+}
+
+message VerifyTokenResponse {
+  string message = 1;
+  VerifyTokenResponseData data = 2;
+}
+
+message VerifyTokenResponseData {
+  User user = 1;
+}
+
+message LogoutRequest {
+  //
+}
+
+message LogoutResponse {
+  string message = 1;
+  LogoutResponseData data = 2;
+}
+
+message LogoutResponseData {
+  //
 }
