@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 )
 
 var conf *Config
@@ -21,6 +22,7 @@ type grpcServer struct {
 
 type grpcClient struct {
 	UserServiceurl string
+	Timeout        time.Duration
 }
 
 type jwt struct {
@@ -32,13 +34,19 @@ func InitConfig() {
 	port, err := strconv.Atoi(Getenv("GRPC_PORT", "5001"))
 
 	if err != nil {
-		log.Fatalln("Invalid GRPC_PORT value", err)
+		log.Println("Invalid GRPC_PORT value", err)
 	}
 
 	expiry, err := strconv.Atoi(Getenv("JWT_EXPIRY_SECONDS", "3600"))
 
 	if err != nil {
-		log.Fatalln("Invalid JWT_EXPIRY_SECONDS value", err)
+		log.Println("Invalid JWT_EXPIRY_SECONDS value", err)
+	}
+
+	timeout, err := strconv.Atoi(Getenv("GRPC_CLIENT_TIMEOUT_SECONDS", "5"))
+
+	if err != nil {
+		log.Println("Invalid GRPC_CLIENT_TIMEOUT_SECONDS value", err)
 	}
 
 	conf = &Config{
@@ -52,6 +60,7 @@ func InitConfig() {
 		},
 		GRPCClient: &grpcClient{
 			UserServiceurl: Getenv("GRPC_USER_SERVICE_URL", "localhost:5000"),
+			Timeout:        time.Duration(timeout) * time.Second,
 		},
 	}
 }

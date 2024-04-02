@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"log"
-	"time"
 
 	"github.com/sagarmaheshwary/microservices-authentication-service/config"
 	pb "github.com/sagarmaheshwary/microservices-authentication-service/proto/user"
@@ -18,7 +17,8 @@ type userClient struct {
 }
 
 func (u *userClient) FindById(data *pb.FindByIdRequest) (*pb.FindByIdResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), config.GetgrpcClient().Timeout)
+
 	defer cancel()
 
 	response, err := u.client.FindById(ctx, data)
@@ -34,7 +34,8 @@ func (u *userClient) FindById(data *pb.FindByIdRequest) (*pb.FindByIdResponse, e
 }
 
 func (u *userClient) FindByCredential(data *pb.FindByCredentialRequest) (*pb.FindByCredentialResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), config.GetgrpcClient().Timeout)
+
 	defer cancel()
 
 	response, err := u.client.FindByCredential(ctx, data)
@@ -45,6 +46,23 @@ func (u *userClient) FindByCredential(data *pb.FindByCredentialRequest) (*pb.Fin
 	}
 
 	log.Printf("userClient.FindByCredential response: %v", response)
+
+	return response, nil
+}
+
+func (u *userClient) Store(data *pb.StoreRequest) (*pb.StoreResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), config.GetgrpcClient().Timeout)
+
+	defer cancel()
+
+	response, err := u.client.Store(ctx, data)
+
+	if err != nil {
+		log.Printf("userClient.Store failed: %v", err)
+		return nil, err
+	}
+
+	log.Printf("userClient.Store response: %v", response)
 
 	return response, nil
 }

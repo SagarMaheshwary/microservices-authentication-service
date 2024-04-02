@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type UserServiceClient interface {
 	FindById(ctx context.Context, in *FindByIdRequest, opts ...grpc.CallOption) (*FindByIdResponse, error)
 	FindByCredential(ctx context.Context, in *FindByCredentialRequest, opts ...grpc.CallOption) (*FindByCredentialResponse, error)
+	Store(ctx context.Context, in *StoreRequest, opts ...grpc.CallOption) (*StoreResponse, error)
 }
 
 type userServiceClient struct {
@@ -52,12 +53,22 @@ func (c *userServiceClient) FindByCredential(ctx context.Context, in *FindByCred
 	return out, nil
 }
 
+func (c *userServiceClient) Store(ctx context.Context, in *StoreRequest, opts ...grpc.CallOption) (*StoreResponse, error) {
+	out := new(StoreResponse)
+	err := c.cc.Invoke(ctx, "/user.UserService/Store", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
 type UserServiceServer interface {
 	FindById(context.Context, *FindByIdRequest) (*FindByIdResponse, error)
 	FindByCredential(context.Context, *FindByCredentialRequest) (*FindByCredentialResponse, error)
+	Store(context.Context, *StoreRequest) (*StoreResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -70,6 +81,9 @@ func (UnimplementedUserServiceServer) FindById(context.Context, *FindByIdRequest
 }
 func (UnimplementedUserServiceServer) FindByCredential(context.Context, *FindByCredentialRequest) (*FindByCredentialResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindByCredential not implemented")
+}
+func (UnimplementedUserServiceServer) Store(context.Context, *StoreRequest) (*StoreResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Store not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
@@ -120,6 +134,24 @@ func _UserService_FindByCredential_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_Store_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StoreRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).Store(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/user.UserService/Store",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).Store(ctx, req.(*StoreRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -134,6 +166,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FindByCredential",
 			Handler:    _UserService_FindByCredential_Handler,
+		},
+		{
+			MethodName: "Store",
+			Handler:    _UserService_Store_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

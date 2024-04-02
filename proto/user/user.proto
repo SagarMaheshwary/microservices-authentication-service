@@ -7,6 +7,7 @@ option go_package = "github.com/SagarMaheshwary/microservices-authentication-ser
 service UserService {
   rpc FindById(FindByIdRequest) returns (FindByIdResponse) {}
   rpc FindByCredential(FindByCredentialRequest) returns (FindByCredentialResponse) {}
+  rpc Store(StoreRequest) returns (StoreResponse) {}
 }
 
 message User {
@@ -42,5 +43,20 @@ message FindByCredentialResponse {
 }
 
 message FindByCredentialResponseData {
+  User user = 1;
+}
+
+message StoreRequest {
+  string name = 1;
+  string email = 2;
+  string password = 3;
+}
+
+message StoreResponse {
+  string message = 1;
+  StoreResponseData data = 2;
+}
+
+message StoreResponseData {
   User user = 1;
 }

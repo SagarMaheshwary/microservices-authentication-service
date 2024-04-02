@@ -5,6 +5,7 @@ package auth;
 option go_package = "github.com/SagarMaheshwary/microservices-authentication-service/proto/auth";
 
 service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse) {};
   rpc Login(LoginRequest) returns (LoginResponse) {}
   rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse) {};
   rpc Logout(LogoutRequest) returns (LogoutResponse) {};
@@ -17,6 +18,22 @@ message User {
   optional string image = 4;
   optional string created_at = 5;
   optional string updated_at = 6;
+}
+
+message RegisterRequest {
+  string name = 1;
+  string email = 2;
+  string password = 3;
+}
+
+message RegisterResponse {
+  string message = 1;
+  RegisterResponseData data = 2;
+}
+
+message RegisterResponseData {
+  string token = 1;
+  User user = 2;
 }
 
 message LoginRequest {
