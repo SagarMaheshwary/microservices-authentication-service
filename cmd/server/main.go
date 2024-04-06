@@ -11,12 +11,15 @@ import (
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/server"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/helpers"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/redis"
 	pb "github.com/sagarmaheshwary/microservices-authentication-service/proto/auth"
 	"google.golang.org/grpc"
 )
 
 func main() {
 	loadenv()
+
+	redis.Connect()
 
 	client.InitClient()
 

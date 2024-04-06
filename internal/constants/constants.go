@@ -17,3 +17,8 @@ const (
 )
 
 const HDR_BEARER_PREFIX = "Bearer "
+
+// Redis key prefix
+const (
+	RDS_TOKEN_BLACKLIST = "token-blacklist"
+)

@@ -13,6 +13,7 @@ type Config struct {
 	GRPCServer *grpcServer
 	JWT        *jwt
 	GRPCClient *grpcClient
+	Redis      *Redis
 }
 
 type grpcServer struct {
@@ -28,6 +29,13 @@ type grpcClient struct {
 type jwt struct {
 	Secret string
 	Expiry int
+}
+
+type Redis struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
 }
 
 func InitConfig() {
@@ -49,6 +57,12 @@ func InitConfig() {
 		log.Println("Invalid GRPC_CLIENT_TIMEOUT_SECONDS value", err)
 	}
 
+	redisPort, err := strconv.Atoi(Getenv("REDIS_PORT", "6379"))
+
+	if err != nil {
+		log.Println("Invalid REDIS_PORT value", err)
+	}
+
 	conf = &Config{
 		GRPCServer: &grpcServer{
 			Host: Getenv("GRPC_HOST", "localhost"),
@@ -61,6 +75,12 @@ func InitConfig() {
 		GRPCClient: &grpcClient{
 			UserServiceurl: Getenv("GRPC_USER_SERVICE_URL", "localhost:5000"),
 			Timeout:        time.Duration(timeout) * time.Second,
+		},
+		Redis: &Redis{
+			Host:     Getenv("REDIS_HOST", "localhost"),
+			Port:     redisPort,
+			Username: Getenv("REDIS_USERNAME", ""),
+			Password: Getenv("REDIS_PASSWORD", ""),
 		},
 	}
 }
@@ -75,6 +95,10 @@ func Getjwt() *jwt {
 
 func GetgrpcClient() *grpcClient {
 	return conf.GRPCClient
+}
+
+func GetRedis() *Redis {
+	return conf.Redis
 }
 
 func Getenv(key string, defaultVal string) string {

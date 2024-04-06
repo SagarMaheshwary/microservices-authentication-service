@@ -7,7 +7,7 @@ import (
 	cons "github.com/sagarmaheshwary/microservices-authentication-service/internal/constants"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/helpers"
-	"github.com/sagarmaheshwary/microservices-authentication-service/internal/pkg"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/jwt"
 	apb "github.com/sagarmaheshwary/microservices-authentication-service/proto/auth"
 	upb "github.com/sagarmaheshwary/microservices-authentication-service/proto/user"
 	"google.golang.org/grpc/codes"
@@ -36,7 +36,7 @@ func (a *authServer) Register(ctx context.Context, data *apb.RegisterRequest) (*
 
 	user := clientResponse.Data.User
 
-	token, err := pkg.Createjwt(uint(user.Id), user.Email)
+	token, err := jwt.New(uint(user.Id), user.Email)
 
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, REGISTER_RPC_TOKEN_ERROR)
@@ -72,7 +72,7 @@ func (a *authServer) Login(ctx context.Context, data *apb.LoginRequest) (*apb.Lo
 
 	user := clientResponse.Data.User
 
-	token, err := pkg.Createjwt(uint(user.Id), user.Name)
+	token, err := jwt.New(uint(user.Id), user.Name)
 
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, cons.INTERNAL_SERVER_ERROR)
@@ -98,6 +98,7 @@ func (a *authServer) Login(ctx context.Context, data *apb.LoginRequest) (*apb.Lo
 
 func (a *authServer) VerifyToken(ctx context.Context, data *apb.VerifyTokenRequest) (*apb.VerifyTokenResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
+
 	header, _ := helpers.GetFromMetadata(md, cons.HDR_AUTHORIZATION)
 	token, f := strings.CutPrefix(header, cons.HDR_BEARER_PREFIX)
 
@@ -105,9 +106,13 @@ func (a *authServer) VerifyToken(ctx context.Context, data *apb.VerifyTokenReque
 		return nil, status.Errorf(codes.Unauthenticated, cons.UNAUTHENTICATED)
 	}
 
-	claims, err := pkg.Parsejwt(token)
+	claims, err := jwt.Parse(token)
 
 	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, cons.UNAUTHENTICATED)
+	}
+
+	if blacklisted := jwt.IsBlacklisted(claims["jti"].(string)); blacklisted {
 		return nil, status.Errorf(codes.Unauthenticated, cons.UNAUTHENTICATED)
 	}
 
@@ -141,7 +146,26 @@ func (a *authServer) VerifyToken(ctx context.Context, data *apb.VerifyTokenReque
 }
 
 func (a *authServer) Logout(ctx context.Context, data *apb.LogoutRequest) (*apb.LogoutResponse, error) {
-	//@TODO: implement token blacklist
+	md, _ := metadata.FromIncomingContext(ctx)
+
+	header, _ := helpers.GetFromMetadata(md, cons.HDR_AUTHORIZATION)
+	token, f := strings.CutPrefix(header, cons.HDR_BEARER_PREFIX)
+
+	if !f {
+		return nil, status.Errorf(codes.Unauthenticated, cons.UNAUTHENTICATED)
+	}
+
+	claims, err := jwt.Parse(token)
+
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, cons.UNAUTHENTICATED)
+	}
+
+	err = jwt.AddToBlacklist(claims["jti"].(string), int64(claims["exp"].(float64)))
+
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, cons.INTERNAL_SERVER_ERROR)
+	}
 
 	response := &apb.LogoutResponse{
 		Message: cons.OK,
