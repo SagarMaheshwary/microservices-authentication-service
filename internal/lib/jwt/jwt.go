@@ -3,13 +3,13 @@ package jwt
 import (
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/sagarmaheshwary/microservices-authentication-service/config"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/constants"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/redis"
 )
 
@@ -39,7 +39,7 @@ func Parse(token string) (jwt.MapClaims, error) {
 	})
 
 	if err != nil {
-		log.Println("Invalid token", err)
+		log.Error("Invalid jwt token %v", err)
 
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func Parse(token string) (jwt.MapClaims, error) {
 	claims, ok := decoded.Claims.(jwt.MapClaims)
 
 	if !ok {
-		fmt.Println("Unable to parse claims", claims)
+		log.Error("Token parse claims failed %v", claims)
 
 		return nil, errors.New("token parse claims failed")
 	}
@@ -61,12 +61,6 @@ func AddToBlacklist(jti string, expiry int64) error {
 
 	err := redis.Set(key, "", time.Duration(expiry)*time.Second)
 
-	log.Println(expiry, time.Duration(expiry)*time.Second)
-
-	if err != nil {
-		log.Println("AddToBlacklist error", err)
-	}
-
 	return err
 }
 
@@ -74,10 +68,6 @@ func IsBlacklisted(jti string) bool {
 	key := fmt.Sprintf("%s:%s", constants.RDS_TOKEN_BLACKLIST, jti)
 
 	_, err := redis.Get(key)
-
-	if err != nil {
-		log.Println("IsBlacklisted error", err)
-	}
 
 	return err == nil
 }

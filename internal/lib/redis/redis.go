@@ -3,11 +3,11 @@ package redis
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	rds "github.com/redis/go-redis/v9"
 	"github.com/sagarmaheshwary/microservices-authentication-service/config"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
 )
 
 var ctx = context.Background()
@@ -23,20 +23,38 @@ func Connect() {
 	})
 
 	if pong := client.Ping(ctx); pong.Val() != "PONG" {
-		log.Fatalf("Unable to Connect Redis %v", pong)
+		log.Fatal("Unable to connect redis %v", pong)
 	}
 
-	log.Println("Connected to Redis.")
+	log.Info("Connected to redis on %q", addr)
 }
 
 func Get(key string) (string, error) {
-	return client.Get(ctx, key).Result()
+	r, err := client.Get(ctx, key).Result()
+
+	if err != nil {
+		log.Error("Redis get key failed %v", err)
+	}
+
+	return r, err
 }
 
 func Set(key string, val string, exp time.Duration) error {
-	return client.Set(ctx, key, val, exp).Err()
+	err := client.Set(ctx, key, val, exp).Err()
+
+	if err != nil {
+		log.Error("Redis set key failed %v", err)
+	}
+
+	return err
 }
 
 func Del(key string) error {
-	return client.Del(ctx, key).Err()
+	err := client.Del(ctx, key).Err()
+
+	if err != nil {
+		log.Error("Redis delete key failed %v", err)
+	}
+
+	return err
 }

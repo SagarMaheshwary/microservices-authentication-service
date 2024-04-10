@@ -2,9 +2,9 @@ package client
 
 import (
 	"context"
-	"log"
 
 	"github.com/sagarmaheshwary/microservices-authentication-service/config"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
 	pb "github.com/sagarmaheshwary/microservices-authentication-service/proto/user"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -24,11 +24,11 @@ func (u *userClient) FindById(data *pb.FindByIdRequest) (*pb.FindByIdResponse, e
 	response, err := u.client.FindById(ctx, data)
 
 	if err != nil {
-		log.Printf("userClient.FindById failed: %v", err)
+		log.Error("gRPC userClient.FindById request failed: %v", err)
 		return nil, err
 	}
 
-	log.Printf("userClient.FindById response: %v", response)
+	log.Info("gRPC userClient.FindById response: %v", response)
 
 	return response, nil
 }
@@ -41,11 +41,11 @@ func (u *userClient) FindByCredential(data *pb.FindByCredentialRequest) (*pb.Fin
 	response, err := u.client.FindByCredential(ctx, data)
 
 	if err != nil {
-		log.Printf("userClient.FindByCredential failed: %v", err)
+		log.Error("gRPC userClient.FindByCredential request failed: %v", err)
 		return nil, err
 	}
 
-	log.Printf("userClient.FindByCredential response: %v", response)
+	log.Info("gRPC userClient.FindByCredential response: %v", response)
 
 	return response, nil
 }
@@ -58,16 +58,16 @@ func (u *userClient) Store(data *pb.StoreRequest) (*pb.StoreResponse, error) {
 	response, err := u.client.Store(ctx, data)
 
 	if err != nil {
-		log.Printf("userClient.Store failed: %v", err)
+		log.Error("gRPC userClient.Store request failed: %v", err)
 		return nil, err
 	}
 
-	log.Printf("userClient.Store response: %v", response)
+	log.Info("gRPC userClient.Store response: %v", response)
 
 	return response, nil
 }
 
-func InitClient() {
+func ConnectUserClient() {
 	var opts []grpc.DialOption
 
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -77,10 +77,10 @@ func InitClient() {
 	conn, err := grpc.Dial(address, opts...)
 
 	if err != nil {
-		log.Printf("grpc client connection failed on %q: %v", address, err)
+		log.Error("gRPC client failed to connect on %q: %v", address, err)
 	}
 
-	log.Printf("Connected to grpc client: %q", address)
+	log.Info("gRPC client connected on %q", address)
 
 	Client = &userClient{client: pb.NewUserServiceClient(conn)}
 }

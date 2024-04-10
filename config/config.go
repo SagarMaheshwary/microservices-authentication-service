@@ -1,10 +1,11 @@
 package config
 
 import (
-	"log"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
 )
 
 var conf *Config
@@ -42,25 +43,25 @@ func InitConfig() {
 	port, err := strconv.Atoi(Getenv("GRPC_PORT", "5001"))
 
 	if err != nil {
-		log.Println("Invalid GRPC_PORT value", err)
+		log.Error("Invalid GRPC_PORT value %v", err)
 	}
 
 	expiry, err := strconv.Atoi(Getenv("JWT_EXPIRY_SECONDS", "3600"))
 
 	if err != nil {
-		log.Println("Invalid JWT_EXPIRY_SECONDS value", err)
+		log.Error("Invalid JWT_EXPIRY_SECONDS value %v", err)
 	}
 
 	timeout, err := strconv.Atoi(Getenv("GRPC_CLIENT_TIMEOUT_SECONDS", "5"))
 
 	if err != nil {
-		log.Println("Invalid GRPC_CLIENT_TIMEOUT_SECONDS value", err)
+		log.Error("Invalid GRPC_CLIENT_TIMEOUT_SECONDS value %v", err)
 	}
 
 	redisPort, err := strconv.Atoi(Getenv("REDIS_PORT", "6379"))
 
 	if err != nil {
-		log.Println("Invalid REDIS_PORT value", err)
+		log.Error("Invalid REDIS_PORT value %v", err)
 	}
 
 	conf = &Config{

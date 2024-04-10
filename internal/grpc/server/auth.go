@@ -174,7 +174,3 @@ func (a *authServer) Logout(ctx context.Context, data *apb.LogoutRequest) (*apb.
 
 	return response, nil
 }
-
-func NewAuthServer() *authServer {
-	return &authServer{}
-}
