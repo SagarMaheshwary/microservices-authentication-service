@@ -6,14 +6,14 @@ import (
 
 	"github.com/sagarmaheshwary/microservices-authentication-service/config"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
-	pb "github.com/sagarmaheshwary/microservices-authentication-service/proto/auth"
+	pb "github.com/sagarmaheshwary/microservices-authentication-service/proto/authentication"
 	"google.golang.org/grpc"
 )
 
 func Connect() {
-	grpcServerConfig := config.GetgrpcServer()
+	c := config.GetgrpcServer()
 
-	address := fmt.Sprintf("%v:%d", grpcServerConfig.Host, grpcServerConfig.Port)
+	address := fmt.Sprintf("%v:%d", c.Host, c.Port)
 
 	listener, err := net.Listen("tcp", address)
 
@@ -24,7 +24,7 @@ func Connect() {
 	var opts []grpc.ServerOption
 
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterAuthServiceServer(grpcServer, &authServer{})
+	pb.RegisterAuthenticationServiceServer(grpcServer, &authenticationServer{})
 
 	log.Info("gRPC server started on %q", address)
 

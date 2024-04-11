@@ -2,9 +2,12 @@ package config
 
 import (
 	"os"
+	"path"
 	"strconv"
 	"time"
 
+	"github.com/gofor-little/env"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/helper"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
 )
 
@@ -39,7 +42,15 @@ type Redis struct {
 	Password string
 }
 
-func InitConfig() {
+func Init() {
+	envPath := path.Join(helper.RootDir(), "..", ".env")
+
+	if err := env.Load(envPath); err != nil {
+		log.Fatal("Failed to load .env %q: %v", envPath, err)
+	}
+
+	log.Info("Loaded %q", envPath)
+
 	port, err := strconv.Atoi(Getenv("GRPC_PORT", "5001"))
 
 	if err != nil {

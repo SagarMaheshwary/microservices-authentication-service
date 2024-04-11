@@ -6,9 +6,9 @@ import (
 
 	cons "github.com/sagarmaheshwary/microservices-authentication-service/internal/constants"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client"
-	"github.com/sagarmaheshwary/microservices-authentication-service/internal/helpers"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/helper"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/jwt"
-	apb "github.com/sagarmaheshwary/microservices-authentication-service/proto/auth"
+	apb "github.com/sagarmaheshwary/microservices-authentication-service/proto/authentication"
 	upb "github.com/sagarmaheshwary/microservices-authentication-service/proto/user"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -19,12 +19,12 @@ const (
 	REGISTER_RPC_TOKEN_ERROR = "User successfully registered, but there was a problem creating the authentication token. Please try manual login."
 )
 
-type authServer struct {
-	apb.AuthServiceServer
+type authenticationServer struct {
+	apb.AuthenticationServiceServer
 }
 
-func (a *authServer) Register(ctx context.Context, data *apb.RegisterRequest) (*apb.RegisterResponse, error) {
-	clientResponse, err := client.Client.Store(&upb.StoreRequest{
+func (a *authenticationServer) Register(ctx context.Context, data *apb.RegisterRequest) (*apb.RegisterResponse, error) {
+	clientResponse, err := client.User.Store(&upb.StoreRequest{
 		Name:     data.Name,
 		Email:    data.Email,
 		Password: data.Password,
@@ -43,7 +43,7 @@ func (a *authServer) Register(ctx context.Context, data *apb.RegisterRequest) (*
 	}
 
 	response := &apb.RegisterResponse{
-		Message: cons.OK,
+		Message: cons.MSGOK,
 		Data: &apb.RegisterResponseData{
 			Token: token,
 			User: &apb.User{
@@ -60,8 +60,8 @@ func (a *authServer) Register(ctx context.Context, data *apb.RegisterRequest) (*
 	return response, nil
 }
 
-func (a *authServer) Login(ctx context.Context, data *apb.LoginRequest) (*apb.LoginResponse, error) {
-	clientResponse, err := client.Client.FindByCredential(&upb.FindByCredentialRequest{
+func (a *authenticationServer) Login(ctx context.Context, data *apb.LoginRequest) (*apb.LoginResponse, error) {
+	clientResponse, err := client.User.FindByCredential(&upb.FindByCredentialRequest{
 		Email:    data.Email,
 		Password: data.Password,
 	})
@@ -75,11 +75,11 @@ func (a *authServer) Login(ctx context.Context, data *apb.LoginRequest) (*apb.Lo
 	token, err := jwt.New(uint(user.Id), user.Name)
 
 	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, cons.INTERNAL_SERVER_ERROR)
+		return nil, status.Errorf(codes.Unauthenticated, cons.MSGInternalServerError)
 	}
 
 	response := &apb.LoginResponse{
-		Message: cons.OK,
+		Message: cons.MSGOK,
 		Data: &apb.LoginResponseData{
 			Token: token,
 			User: &apb.User{
@@ -96,40 +96,40 @@ func (a *authServer) Login(ctx context.Context, data *apb.LoginRequest) (*apb.Lo
 	return response, nil
 }
 
-func (a *authServer) VerifyToken(ctx context.Context, data *apb.VerifyTokenRequest) (*apb.VerifyTokenResponse, error) {
+func (a *authenticationServer) VerifyToken(ctx context.Context, data *apb.VerifyTokenRequest) (*apb.VerifyTokenResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 
-	header, _ := helpers.GetFromMetadata(md, cons.HDR_AUTHORIZATION)
+	header, _ := helper.GetFromMetadata(md, cons.HDR_AUTHORIZATION)
 	token, f := strings.CutPrefix(header, cons.HDR_BEARER_PREFIX)
 
 	if !f {
-		return nil, status.Errorf(codes.Unauthenticated, cons.UNAUTHENTICATED)
+		return nil, status.Errorf(codes.Unauthenticated, cons.MSGUnauthenticated)
 	}
 
 	claims, err := jwt.Parse(token)
 
 	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, cons.UNAUTHENTICATED)
+		return nil, status.Errorf(codes.Unauthenticated, cons.MSGUnauthenticated)
 	}
 
 	if blacklisted := jwt.IsBlacklisted(claims["jti"].(string)); blacklisted {
-		return nil, status.Errorf(codes.Unauthenticated, cons.UNAUTHENTICATED)
+		return nil, status.Errorf(codes.Unauthenticated, cons.MSGUnauthenticated)
 	}
 
 	userId := claims["id"].(float64)
 
-	clientResponse, err := client.Client.FindById(&upb.FindByIdRequest{
+	clientResponse, err := client.User.FindById(&upb.FindByIdRequest{
 		Id: int32(userId),
 	})
 
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, cons.UNAUTHENTICATED)
+		return nil, status.Errorf(codes.Internal, cons.MSGUnauthenticated)
 	}
 
 	user := clientResponse.Data.User
 
 	response := &apb.VerifyTokenResponse{
-		Message: cons.OK,
+		Message: cons.MSGOK,
 		Data: &apb.VerifyTokenResponseData{
 			User: &apb.User{
 				Id:        user.Id,
@@ -145,30 +145,30 @@ func (a *authServer) VerifyToken(ctx context.Context, data *apb.VerifyTokenReque
 	return response, nil
 }
 
-func (a *authServer) Logout(ctx context.Context, data *apb.LogoutRequest) (*apb.LogoutResponse, error) {
+func (a *authenticationServer) Logout(ctx context.Context, data *apb.LogoutRequest) (*apb.LogoutResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 
-	header, _ := helpers.GetFromMetadata(md, cons.HDR_AUTHORIZATION)
+	header, _ := helper.GetFromMetadata(md, cons.HDR_AUTHORIZATION)
 	token, f := strings.CutPrefix(header, cons.HDR_BEARER_PREFIX)
 
 	if !f {
-		return nil, status.Errorf(codes.Unauthenticated, cons.UNAUTHENTICATED)
+		return nil, status.Errorf(codes.Unauthenticated, cons.MSGUnauthenticated)
 	}
 
 	claims, err := jwt.Parse(token)
 
 	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, cons.UNAUTHENTICATED)
+		return nil, status.Errorf(codes.Unauthenticated, cons.MSGUnauthenticated)
 	}
 
 	err = jwt.AddToBlacklist(claims["jti"].(string), int64(claims["exp"].(float64)))
 
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, cons.INTERNAL_SERVER_ERROR)
+		return nil, status.Errorf(codes.Internal, cons.MSGInternalServerError)
 	}
 
 	response := &apb.LogoutResponse{
-		Message: cons.OK,
+		Message: cons.MSGOK,
 		Data:    &apb.LogoutResponseData{},
 	}
 

@@ -1,14 +1,14 @@
 package constants
 
-// gRPC response messages
+// Response messages
 const (
-	OK                    = "Success"
-	CREATED               = "Created New Resource"
-	INTERNAL_SERVER_ERROR = "Internal Server Error"
-	NOT_FOUND             = "Resource Not Found"
-	UNAUTHENTICATED       = "Unauthenticated"
-	UNAUTHORIZED          = "Unauthorized"
-	BAD_REQUEST           = "Bad Request"
+	MSGOK                  = "Success"
+	MSGCreated             = "Created New Resource"
+	MSGInternalServerError = "Internal Server Error"
+	MSGNotFound            = "Resource Not Found"
+	MSGUnauthenticated     = "Unauthenticated"
+	MSGUnauthorized        = "Unauthorized"
+	MSGBadRequest          = "Bad Request"
 )
 
 // gRPC metadata headers

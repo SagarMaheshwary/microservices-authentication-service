@@ -26,7 +26,7 @@ func Connect() {
 		log.Fatal("Unable to connect redis %v", pong)
 	}
 
-	log.Info("Connected to redis on %q", addr)
+	log.Info("Redis server connected on %q", addr)
 }
 
 func Get(key string) (string, error) {
