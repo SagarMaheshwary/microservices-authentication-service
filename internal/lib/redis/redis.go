@@ -6,7 +6,7 @@ import (
 	"time"
 
 	rds "github.com/redis/go-redis/v9"
-	"github.com/sagarmaheshwary/microservices-authentication-service/config"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
 )
 

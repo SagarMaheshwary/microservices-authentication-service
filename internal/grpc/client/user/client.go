@@ -1,9 +1,9 @@
-package client
+package user
 
 import (
-	"github.com/sagarmaheshwary/microservices-authentication-service/config"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
-	pb "github.com/sagarmaheshwary/microservices-authentication-service/proto/user"
+	pb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/user"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

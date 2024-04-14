@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/sagarmaheshwary/microservices-authentication-service/config"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
-	pb "github.com/sagarmaheshwary/microservices-authentication-service/proto/authentication"
+	pb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/authentication"
 	"google.golang.org/grpc"
 )
 

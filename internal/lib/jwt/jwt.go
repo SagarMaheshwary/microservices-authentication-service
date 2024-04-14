@@ -7,8 +7,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/sagarmaheshwary/microservices-authentication-service/config"
-	"github.com/sagarmaheshwary/microservices-authentication-service/internal/constants"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
+	cons "github.com/sagarmaheshwary/microservices-authentication-service/internal/constant"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/redis"
 )
@@ -56,7 +56,7 @@ func Parse(token string) (jwt.MapClaims, error) {
 }
 
 func AddToBlacklist(jti string, expiry int64) error {
-	key := fmt.Sprintf("%s:%s", constants.RDS_TOKEN_BLACKLIST, jti)
+	key := fmt.Sprintf("%s:%s", cons.RedisTokenBlacklist, jti)
 	expiry = expiry - time.Now().Unix()
 
 	err := redis.Set(key, "", time.Duration(expiry)*time.Second)
@@ -65,7 +65,7 @@ func AddToBlacklist(jti string, expiry int64) error {
 }
 
 func IsBlacklisted(jti string) bool {
-	key := fmt.Sprintf("%s:%s", constants.RDS_TOKEN_BLACKLIST, jti)
+	key := fmt.Sprintf("%s:%s", cons.RedisTokenBlacklist, jti)
 
 	_, err := redis.Get(key)
 
