@@ -27,9 +27,9 @@ air -c .air-toml
 
 ### APIs (RPC)
 
-| SERVICE     | RPC         | METADATA                               | DESCRIPTION                                                                                   |
-| ----------- | ----------- | -------------------------------------- | --------------------------------------------------------------------------------------------- |
-| AuthService | Register    | -                                      | User registration using "user" microservice's UserService.Store RPC                           |
-| AuthService | Login       | -                                      | User login using "user" microservice's UserService.FindByCredential RPC                       |
-| AuthService | VerifyToken | Bearer token in "authorization" header | Token verification and getting user data using "user" microservice's UserService.FindById RPC |
-| AuthService | Logout      | Bearer token in "authorization" header | User logout by adding token to redis blacklist.                                               |
+| SERVICE     | RPC         | METADATA                               | DESCRIPTION                                                                                                  |
+| ----------- | ----------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| AuthService | Register    | -                                      | User registration via [user microservice](https://github.com/SagarMaheshwary/microservices-user-service) RPC |
+| AuthService | Login       | -                                      | User login via user microservice                                                                             |
+| AuthService | VerifyToken | Bearer token in "authorization" header | Token verification and getting user data via user microservice                                               |
+| AuthService | Logout      | Bearer token in "authorization" header | User logout by adding token to redis blacklist.                                                              |
