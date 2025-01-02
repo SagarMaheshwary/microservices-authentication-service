@@ -13,7 +13,7 @@ func Connect() {
 
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
-	address := config.GetgrpcClient().UserServiceurl
+	address := config.Conf.GRPCClient.UserServiceURL
 
 	conn, err := grpc.Dial(address, opts...)
 

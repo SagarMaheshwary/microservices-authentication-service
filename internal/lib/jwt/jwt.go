@@ -8,7 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
-	cons "github.com/sagarmaheshwary/microservices-authentication-service/internal/constant"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/constant"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/redis"
 )
@@ -16,7 +16,7 @@ import (
 func New(id uint, username string) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 
-	jwtConfig := config.Getjwt()
+	jwtConfig := config.Conf.JWT
 
 	expiry := time.Now().Add(time.Duration(jwtConfig.Expiry) * time.Second).Unix()
 
@@ -35,7 +35,7 @@ func Parse(token string) (jwt.MapClaims, error) {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 
-		return []byte(config.Getjwt().Secret), nil
+		return []byte(config.Conf.JWT.Secret), nil
 	})
 
 	if err != nil {
@@ -56,7 +56,7 @@ func Parse(token string) (jwt.MapClaims, error) {
 }
 
 func AddToBlacklist(jti string, expiry int64) error {
-	key := fmt.Sprintf("%s:%s", cons.RedisTokenBlacklist, jti)
+	key := fmt.Sprintf("%s:%s", constant.RedisTokenBlacklist, jti)
 	expiry = expiry - time.Now().Unix()
 
 	err := redis.Set(key, "", time.Duration(expiry)*time.Second)
@@ -65,7 +65,7 @@ func AddToBlacklist(jti string, expiry int64) error {
 }
 
 func IsBlacklisted(jti string) bool {
-	key := fmt.Sprintf("%s:%s", cons.RedisTokenBlacklist, jti)
+	key := fmt.Sprintf("%s:%s", constant.RedisTokenBlacklist, jti)
 
 	_, err := redis.Get(key)
 

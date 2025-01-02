@@ -15,7 +15,7 @@ type userClient struct {
 }
 
 func (u *userClient) FindById(data *pb.FindByIdRequest) (*pb.FindByIdResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.GetgrpcClient().Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), config.Conf.GRPCClient.Timeout)
 
 	defer cancel()
 
@@ -32,7 +32,7 @@ func (u *userClient) FindById(data *pb.FindByIdRequest) (*pb.FindByIdResponse, e
 }
 
 func (u *userClient) FindByCredential(data *pb.FindByCredentialRequest) (*pb.FindByCredentialResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.GetgrpcClient().Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), config.Conf.GRPCClient.Timeout)
 
 	defer cancel()
 
@@ -49,7 +49,7 @@ func (u *userClient) FindByCredential(data *pb.FindByCredentialRequest) (*pb.Fin
 }
 
 func (u *userClient) Store(data *pb.StoreRequest) (*pb.StoreResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.GetgrpcClient().Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), config.Conf.GRPCClient.Timeout)
 
 	defer cancel()
 

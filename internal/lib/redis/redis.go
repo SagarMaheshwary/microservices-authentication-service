@@ -5,21 +5,23 @@ import (
 	"fmt"
 	"time"
 
-	rds "github.com/redis/go-redis/v9"
+	redislib "github.com/redis/go-redis/v9"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
 )
 
 var ctx = context.Background()
-var client *rds.Client
+var client *redislib.Client
 
 func Connect() {
-	addr := fmt.Sprintf("%s:%d", config.GetRedis().Host, config.GetRedis().Port)
+	c := config.Conf.Redis
 
-	client = rds.NewClient(&rds.Options{
+	addr := fmt.Sprintf("%s:%d", c.Host, c.Port)
+
+	client = redislib.NewClient(&redislib.Options{
 		Addr:     addr,
-		Username: config.GetRedis().Username,
-		Password: config.GetRedis().Password,
+		Username: c.Username,
+		Password: c.Password,
 	})
 
 	if pong := client.Ping(ctx); pong.Val() != "PONG" {

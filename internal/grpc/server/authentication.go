@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	cons "github.com/sagarmaheshwary/microservices-authentication-service/internal/constant"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/constant"
 	userrpc "github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client/user"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/helper"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/jwt"
@@ -43,7 +43,7 @@ func (a *authenticationServer) Register(ctx context.Context, data *apb.RegisterR
 	}
 
 	response := &apb.RegisterResponse{
-		Message: cons.MessageOK,
+		Message: constant.MessageOK,
 		Data: &apb.RegisterResponseData{
 			Token: token,
 			User: &apb.User{
@@ -75,11 +75,11 @@ func (a *authenticationServer) Login(ctx context.Context, data *apb.LoginRequest
 	token, err := jwt.New(uint(user.Id), user.Name)
 
 	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, cons.MessageInternalServerError)
+		return nil, status.Errorf(codes.Unauthenticated, constant.MessageInternalServerError)
 	}
 
 	response := &apb.LoginResponse{
-		Message: cons.MessageOK,
+		Message: constant.MessageOK,
 		Data: &apb.LoginResponseData{
 			Token: token,
 			User: &apb.User{
@@ -99,21 +99,21 @@ func (a *authenticationServer) Login(ctx context.Context, data *apb.LoginRequest
 func (a *authenticationServer) VerifyToken(ctx context.Context, data *apb.VerifyTokenRequest) (*apb.VerifyTokenResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 
-	header, _ := helper.GetFromMetadata(md, cons.HeaderAuthorization)
-	token, f := strings.CutPrefix(header, cons.HeaderBearerPrefix)
+	header, _ := helper.GetFromMetadata(md, constant.HeaderAuthorization)
+	token, f := strings.CutPrefix(header, constant.HeaderBearerPrefix)
 
 	if !f {
-		return nil, status.Errorf(codes.Unauthenticated, cons.MessageUnauthorized)
+		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
 	}
 
 	claims, err := jwt.Parse(token)
 
 	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, cons.MessageUnauthorized)
+		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
 	}
 
 	if blacklisted := jwt.IsBlacklisted(claims["jti"].(string)); blacklisted {
-		return nil, status.Errorf(codes.Unauthenticated, cons.MessageUnauthorized)
+		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
 	}
 
 	userId := claims["id"].(float64)
@@ -123,13 +123,13 @@ func (a *authenticationServer) VerifyToken(ctx context.Context, data *apb.Verify
 	})
 
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, cons.MessageUnauthorized)
+		return nil, status.Errorf(codes.Internal, constant.MessageUnauthorized)
 	}
 
 	user := clientResponse.Data.User
 
 	response := &apb.VerifyTokenResponse{
-		Message: cons.MessageOK,
+		Message: constant.MessageOK,
 		Data: &apb.VerifyTokenResponseData{
 			User: &apb.User{
 				Id:        user.Id,
@@ -148,27 +148,27 @@ func (a *authenticationServer) VerifyToken(ctx context.Context, data *apb.Verify
 func (a *authenticationServer) Logout(ctx context.Context, data *apb.LogoutRequest) (*apb.LogoutResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 
-	header, _ := helper.GetFromMetadata(md, cons.HeaderAuthorization)
-	token, f := strings.CutPrefix(header, cons.HeaderBearerPrefix)
+	header, _ := helper.GetFromMetadata(md, constant.HeaderAuthorization)
+	token, f := strings.CutPrefix(header, constant.HeaderBearerPrefix)
 
 	if !f {
-		return nil, status.Errorf(codes.Unauthenticated, cons.MessageUnauthorized)
+		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
 	}
 
 	claims, err := jwt.Parse(token)
 
 	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, cons.MessageUnauthorized)
+		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
 	}
 
 	err = jwt.AddToBlacklist(claims["jti"].(string), int64(claims["exp"].(float64)))
 
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, cons.MessageInternalServerError)
+		return nil, status.Errorf(codes.Internal, constant.MessageInternalServerError)
 	}
 
 	response := &apb.LogoutResponse{
-		Message: cons.MessageOK,
+		Message: constant.MessageOK,
 		Data:    &apb.LogoutResponseData{},
 	}
 
