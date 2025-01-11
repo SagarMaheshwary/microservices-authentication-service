@@ -36,7 +36,7 @@ func (a *authenticationServer) Register(ctx context.Context, data *apb.RegisterR
 
 	user := clientResponse.Data.User
 
-	token, err := jwt.New(uint(user.Id), user.Email)
+	token, err := jwt.NewToken(uint(user.Id), user.Email)
 
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, REGISTER_RPC_TOKEN_ERROR)
@@ -72,7 +72,7 @@ func (a *authenticationServer) Login(ctx context.Context, data *apb.LoginRequest
 
 	user := clientResponse.Data.User
 
-	token, err := jwt.New(uint(user.Id), user.Name)
+	token, err := jwt.NewToken(uint(user.Id), user.Name)
 
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, constant.MessageInternalServerError)
@@ -99,14 +99,14 @@ func (a *authenticationServer) Login(ctx context.Context, data *apb.LoginRequest
 func (a *authenticationServer) VerifyToken(ctx context.Context, data *apb.VerifyTokenRequest) (*apb.VerifyTokenResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 
-	header, _ := helper.GetFromMetadata(md, constant.HeaderAuthorization)
+	header, _ := helper.GetGRPCMetadataValue(md, constant.HeaderAuthorization)
 	token, f := strings.CutPrefix(header, constant.HeaderBearerPrefix)
 
 	if !f {
 		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
 	}
 
-	claims, err := jwt.Parse(token)
+	claims, err := jwt.ParseToken(token)
 
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
@@ -148,14 +148,14 @@ func (a *authenticationServer) VerifyToken(ctx context.Context, data *apb.Verify
 func (a *authenticationServer) Logout(ctx context.Context, data *apb.LogoutRequest) (*apb.LogoutResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 
-	header, _ := helper.GetFromMetadata(md, constant.HeaderAuthorization)
+	header, _ := helper.GetGRPCMetadataValue(md, constant.HeaderAuthorization)
 	token, f := strings.CutPrefix(header, constant.HeaderBearerPrefix)
 
 	if !f {
 		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
 	}
 
-	claims, err := jwt.Parse(token)
+	claims, err := jwt.ParseToken(token)
 
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)

@@ -43,7 +43,7 @@ type Redis struct {
 }
 
 func Init() {
-	envPath := path.Join(helper.RootDir(), "..", ".env")
+	envPath := path.Join(helper.GetRootDir(), "..", ".env")
 
 	if err := env.Load(envPath); err != nil {
 		log.Fatal("Failed to load .env %q: %v", envPath, err)

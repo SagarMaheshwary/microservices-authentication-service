@@ -24,11 +24,22 @@ func Connect() {
 		Password: c.Password,
 	})
 
-	if pong := client.Ping(ctx); pong.Val() != "PONG" {
-		log.Fatal("Unable to connect redis %v", pong)
+	if !HealthCheck() {
+		log.Error("Unable to connect to redis")
+		return
 	}
 
 	log.Info("Redis server connected on %q", addr)
+}
+
+func HealthCheck() bool {
+	if pong := client.Ping(ctx); pong.Val() != "PONG" {
+		log.Error("Redis health check failed! %q", pong.Val())
+
+		return false
+	}
+
+	return true
 }
 
 func Get(key string) (string, error) {

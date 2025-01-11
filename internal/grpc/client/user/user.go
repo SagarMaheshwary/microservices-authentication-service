@@ -6,12 +6,14 @@ import (
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
 	pb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/user"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 var User *userClient
 
 type userClient struct {
 	client pb.UserServiceClient
+	health healthpb.HealthClient
 }
 
 func (u *userClient) FindById(data *pb.FindByIdRequest) (*pb.FindByIdResponse, error) {

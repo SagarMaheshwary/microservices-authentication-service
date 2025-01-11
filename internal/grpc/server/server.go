@@ -8,6 +8,7 @@ import (
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
 	pb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/authentication"
 	"google.golang.org/grpc"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func Connect() {
@@ -23,12 +24,13 @@ func Connect() {
 
 	var opts []grpc.ServerOption
 
-	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterAuthenticationServiceServer(grpcServer, &authenticationServer{})
+	server := grpc.NewServer(opts...)
+	pb.RegisterAuthenticationServiceServer(server, &authenticationServer{})
+	healthpb.RegisterHealthServer(server, &healthServer{})
 
 	log.Info("gRPC server started on %q", address)
 
-	if err := grpcServer.Serve(listener); err != nil {
+	if err := server.Serve(listener); err != nil {
 		log.Error("gRPC server failed to start %v", err)
 	}
 }

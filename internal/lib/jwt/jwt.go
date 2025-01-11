@@ -13,7 +13,7 @@ import (
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/redis"
 )
 
-func New(id uint, username string) (string, error) {
+func NewToken(id uint, username string) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 
 	jwtConfig := config.Conf.JWT
@@ -29,7 +29,7 @@ func New(id uint, username string) (string, error) {
 	return token.SignedString([]byte(jwtConfig.Secret))
 }
 
-func Parse(token string) (jwt.MapClaims, error) {
+func ParseToken(token string) (jwt.MapClaims, error) {
 	decoded, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
