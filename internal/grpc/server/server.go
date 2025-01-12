@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
-	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
 	pb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/authentication"
 	"google.golang.org/grpc"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -19,7 +19,7 @@ func Connect() {
 	listener, err := net.Listen("tcp", address)
 
 	if err != nil {
-		log.Fatal("Failed to create tcp listner on %q: %v", address, err)
+		logger.Fatal("Failed to create tcp listner on %q: %v", address, err)
 	}
 
 	var opts []grpc.ServerOption
@@ -28,9 +28,9 @@ func Connect() {
 	pb.RegisterAuthenticationServiceServer(server, &authenticationServer{})
 	healthpb.RegisterHealthServer(server, &healthServer{})
 
-	log.Info("gRPC server started on %q", address)
+	logger.Info("gRPC server started on %q", address)
 
 	if err := server.Serve(listener); err != nil {
-		log.Error("gRPC server failed to start %v", err)
+		logger.Error("gRPC server failed to start %v", err)
 	}
 }

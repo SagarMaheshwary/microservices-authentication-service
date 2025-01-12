@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/constant"
-	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/redis"
 )
 
@@ -39,7 +39,7 @@ func ParseToken(token string) (jwt.MapClaims, error) {
 	})
 
 	if err != nil {
-		log.Error("Invalid jwt token %v", err)
+		logger.Error("Invalid jwt token %v", err)
 
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func ParseToken(token string) (jwt.MapClaims, error) {
 	claims, ok := decoded.Claims.(jwt.MapClaims)
 
 	if !ok {
-		log.Error("Token parse claims failed %v", claims)
+		logger.Error("Token parse claims failed %v", claims)
 
 		return nil, errors.New("token parse claims failed")
 	}

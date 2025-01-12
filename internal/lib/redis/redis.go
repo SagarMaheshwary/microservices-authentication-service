@@ -7,7 +7,7 @@ import (
 
 	redislib "github.com/redis/go-redis/v9"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
-	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
 )
 
 var ctx = context.Background()
@@ -25,16 +25,17 @@ func Connect() {
 	})
 
 	if !HealthCheck() {
-		log.Error("Unable to connect to redis")
+		logger.Error("Unable to connect to redis")
+
 		return
 	}
 
-	log.Info("Redis server connected on %q", addr)
+	logger.Info("Redis server connected on %q", addr)
 }
 
 func HealthCheck() bool {
 	if pong := client.Ping(ctx); pong.Val() != "PONG" {
-		log.Error("Redis health check failed! %q", pong.Val())
+		logger.Error("Redis health check failed! %q", pong.Val())
 
 		return false
 	}
@@ -46,7 +47,7 @@ func Get(key string) (string, error) {
 	r, err := client.Get(ctx, key).Result()
 
 	if err != nil {
-		log.Error("Redis get key failed %v", err)
+		logger.Error("Redis get key failed %v", err)
 	}
 
 	return r, err
@@ -56,7 +57,7 @@ func Set(key string, val string, exp time.Duration) error {
 	err := client.Set(ctx, key, val, exp).Err()
 
 	if err != nil {
-		log.Error("Redis set key failed %v", err)
+		logger.Error("Redis set key failed %v", err)
 	}
 
 	return err
@@ -66,7 +67,7 @@ func Del(key string) error {
 	err := client.Del(ctx, key).Err()
 
 	if err != nil {
-		log.Error("Redis delete key failed %v", err)
+		logger.Error("Redis delete key failed %v", err)
 	}
 
 	return err

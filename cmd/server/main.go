@@ -3,16 +3,16 @@ package main
 import (
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
 	userrpc "github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client/user"
-	grpcsrv "github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/server"
-	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
+	server "github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/server"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/redis"
 )
 
 func main() {
-	log.Init()
+	logger.Init()
 	config.Init()
 
 	redis.Connect()
 	userrpc.Connect()
-	grpcsrv.Connect()
+	server.Connect()
 }

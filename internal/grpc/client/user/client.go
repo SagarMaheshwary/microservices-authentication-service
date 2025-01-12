@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
-	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/log"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
 	pb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/user"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -21,7 +21,7 @@ func Connect() {
 	connection, err := grpc.Dial(address, options...)
 
 	if err != nil {
-		log.Error("User gRPC failed to connect on %q: %v", address, err)
+		logger.Error("User gRPC failed to connect on %q: %v", address, err)
 	}
 
 	User = &userClient{
@@ -30,7 +30,7 @@ func Connect() {
 	}
 
 	if HealthCheck() {
-		log.Info("User gRPC client connected on %q", address)
+		logger.Info("User gRPC client connected on %q", address)
 	}
 }
 
@@ -41,13 +41,13 @@ func HealthCheck() bool {
 	response, err := User.health.Check(ctx, &healthpb.HealthCheckRequest{})
 
 	if err != nil {
-		log.Error("User gRPC health check failed! %v", err)
+		logger.Error("User gRPC health check failed! %v", err)
 
 		return false
 	}
 
 	if response.Status == healthpb.HealthCheckResponse_NOT_SERVING {
-		log.Error("User gRPC health check failed!")
+		logger.Error("User gRPC health check failed!")
 
 		return false
 	}
