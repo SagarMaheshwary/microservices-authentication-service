@@ -22,6 +22,8 @@ func Connect() {
 
 	if err != nil {
 		logger.Error("User gRPC failed to connect on %q: %v", address, err)
+
+		return
 	}
 
 	User = &userClient{
