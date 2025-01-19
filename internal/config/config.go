@@ -18,6 +18,7 @@ type Config struct {
 	JWT        *JWT
 	GRPCClient *GRPCClient
 	Redis      *Redis
+	Prometheus *Prometheus
 }
 
 type GRPCServer struct {
@@ -40,6 +41,11 @@ type Redis struct {
 	Port     int
 	Username string
 	Password string
+}
+
+type Prometheus struct {
+	METRICS_HOST string
+	METRICS_PORT int
 }
 
 func Init() {
@@ -69,6 +75,10 @@ func Init() {
 			Port:     getEnvInt("REDIS_PORT", 6379),
 			Username: getEnv("REDIS_USERNAME", ""),
 			Password: getEnv("REDIS_PASSWORD", ""),
+		},
+		Prometheus: &Prometheus{
+			METRICS_HOST: getEnv("PROMETHEUS_METRICS_HOST", "localhost"),
+			METRICS_PORT: getEnvInt("PROMETHEUS_METRICS_PORT", 5011),
 		},
 	}
 }

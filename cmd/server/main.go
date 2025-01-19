@@ -5,6 +5,7 @@ import (
 	userrpc "github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client/user"
 	server "github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/server"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/prometheus"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/redis"
 )
 
@@ -14,5 +15,10 @@ func main() {
 
 	redis.Connect()
 	userrpc.Connect()
+
+	go func() {
+		prometheus.Connect()
+	}()
+
 	server.Connect()
 }

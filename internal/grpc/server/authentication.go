@@ -8,8 +8,8 @@ import (
 	userrpc "github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client/user"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/helper"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/jwt"
-	apb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/authentication"
-	upb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/user"
+	authpb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/authentication"
+	userpb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/user"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -20,11 +20,11 @@ const (
 )
 
 type authenticationServer struct {
-	apb.AuthenticationServiceServer
+	authpb.AuthenticationServiceServer
 }
 
-func (a *authenticationServer) Register(ctx context.Context, data *apb.RegisterRequest) (*apb.RegisterResponse, error) {
-	clientResponse, err := userrpc.User.Store(&upb.StoreRequest{
+func (a *authenticationServer) Register(ctx context.Context, data *authpb.RegisterRequest) (*authpb.RegisterResponse, error) {
+	clientResponse, err := userrpc.User.Store(&userpb.StoreRequest{
 		Name:     data.Name,
 		Email:    data.Email,
 		Password: data.Password,
@@ -42,11 +42,11 @@ func (a *authenticationServer) Register(ctx context.Context, data *apb.RegisterR
 		return nil, status.Errorf(codes.Internal, REGISTER_RPC_TOKEN_ERROR)
 	}
 
-	response := &apb.RegisterResponse{
+	response := &authpb.RegisterResponse{
 		Message: constant.MessageOK,
-		Data: &apb.RegisterResponseData{
+		Data: &authpb.RegisterResponseData{
 			Token: token,
-			User: &apb.User{
+			User: &authpb.User{
 				Id:        user.Id,
 				Name:      user.Name,
 				Email:     user.Email,
@@ -60,8 +60,8 @@ func (a *authenticationServer) Register(ctx context.Context, data *apb.RegisterR
 	return response, nil
 }
 
-func (a *authenticationServer) Login(ctx context.Context, data *apb.LoginRequest) (*apb.LoginResponse, error) {
-	clientResponse, err := userrpc.User.FindByCredential(&upb.FindByCredentialRequest{
+func (a *authenticationServer) Login(ctx context.Context, data *authpb.LoginRequest) (*authpb.LoginResponse, error) {
+	clientResponse, err := userrpc.User.FindByCredential(&userpb.FindByCredentialRequest{
 		Email:    data.Email,
 		Password: data.Password,
 	})
@@ -78,11 +78,11 @@ func (a *authenticationServer) Login(ctx context.Context, data *apb.LoginRequest
 		return nil, status.Errorf(codes.Unauthenticated, constant.MessageInternalServerError)
 	}
 
-	response := &apb.LoginResponse{
+	response := &authpb.LoginResponse{
 		Message: constant.MessageOK,
-		Data: &apb.LoginResponseData{
+		Data: &authpb.LoginResponseData{
 			Token: token,
-			User: &apb.User{
+			User: &authpb.User{
 				Id:        user.Id,
 				Name:      user.Name,
 				Email:     user.Email,
@@ -96,7 +96,7 @@ func (a *authenticationServer) Login(ctx context.Context, data *apb.LoginRequest
 	return response, nil
 }
 
-func (a *authenticationServer) VerifyToken(ctx context.Context, data *apb.VerifyTokenRequest) (*apb.VerifyTokenResponse, error) {
+func (a *authenticationServer) VerifyToken(ctx context.Context, data *authpb.VerifyTokenRequest) (*authpb.VerifyTokenResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 
 	header, _ := helper.GetGRPCMetadataValue(md, constant.HeaderAuthorization)
@@ -118,7 +118,7 @@ func (a *authenticationServer) VerifyToken(ctx context.Context, data *apb.Verify
 
 	userId := claims["id"].(float64)
 
-	clientResponse, err := userrpc.User.FindById(&upb.FindByIdRequest{
+	clientResponse, err := userrpc.User.FindById(&userpb.FindByIdRequest{
 		Id: int32(userId),
 	})
 
@@ -128,10 +128,10 @@ func (a *authenticationServer) VerifyToken(ctx context.Context, data *apb.Verify
 
 	user := clientResponse.Data.User
 
-	response := &apb.VerifyTokenResponse{
+	response := &authpb.VerifyTokenResponse{
 		Message: constant.MessageOK,
-		Data: &apb.VerifyTokenResponseData{
-			User: &apb.User{
+		Data: &authpb.VerifyTokenResponseData{
+			User: &authpb.User{
 				Id:        user.Id,
 				Name:      user.Name,
 				Email:     user.Email,
@@ -145,7 +145,7 @@ func (a *authenticationServer) VerifyToken(ctx context.Context, data *apb.Verify
 	return response, nil
 }
 
-func (a *authenticationServer) Logout(ctx context.Context, data *apb.LogoutRequest) (*apb.LogoutResponse, error) {
+func (a *authenticationServer) Logout(ctx context.Context, data *authpb.LogoutRequest) (*authpb.LogoutResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 
 	header, _ := helper.GetGRPCMetadataValue(md, constant.HeaderAuthorization)
@@ -161,15 +161,19 @@ func (a *authenticationServer) Logout(ctx context.Context, data *apb.LogoutReque
 		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
 	}
 
+	if blacklisted := jwt.IsBlacklisted(claims["jti"].(string)); blacklisted {
+		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
+	}
+
 	err = jwt.AddToBlacklist(claims["jti"].(string), int64(claims["exp"].(float64)))
 
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, constant.MessageInternalServerError)
 	}
 
-	response := &apb.LogoutResponse{
+	response := &authpb.LogoutResponse{
 		Message: constant.MessageOK,
-		Data:    &apb.LogoutResponseData{},
+		Data:    &authpb.LogoutResponseData{},
 	}
 
 	return response, nil
