@@ -1,35 +1,34 @@
 # MICROSERVICES - AUTHENTICATION SERVICE
 
-This service is a part of the Microservices project built for handling authentication and authorization stuff.
+Authentication Service for the [Microservices](https://github.com/SagarMaheshwary/microservices) project.
 
-### TECHNOLOGIES
+### OVERVIEW
 
-- Golang (1.22.2)
-- Redis (7.2)
-- gRPC
-- JWT
+- Golang
+- ZeroLog
+- gRPC – Acts as both the main server and client for the User service
+- JWT (JSON Web Tokens) – Used for authentication and secure communication
+- Redis - Maintains the token blacklist
+- Prometheus Client – Exports default and custom metrics for Prometheus server monitoring
 
 ### SETUP
 
-cd into the project directory and copy **.env.example** to **.env** and update the required variables.
+Follow the instructions in the [README](https://github.com/SagarMaheshwary/microservices?tab=readme-ov-file#setup) of the main microservices repository to run this service along with others using Docker Compose.
 
-Create executable and start the server:
+### APIs (gRPC)
 
-```bash
-go build cmd/server/main.go && ./main
-```
+Proto files are located in the **internal/proto** directory.
 
-Or install "[air](https://github.com/cosmtrek/air)" and run it to autoreload when making file changes:
+| SERVICE                                                        | RPC         | METADATA                            | DESCRIPTION                                    |
+| -------------------------------------------------------------- | ----------- | ----------------------------------- | ---------------------------------------------- |
+| AuthService                                                    | Register    | -                                   | User registration                              |
+| AuthService                                                    | Login       | -                                   | User login                                     |
+| AuthService                                                    | VerifyToken | Bearer token in "authorization" key | Token verification and getting user data       |
+| AuthService                                                    | Logout      | Bearer token in "authorization" key | User logout by adding token to redis blacklist |
+| [Health](https://google.golang.org/grpc/health/grpc_health_v1) | Check       | -                                   | Service health check                           |
 
-```bash
-air -c .air-toml
-```
+### APIs (REST)
 
-### APIs (RPC)
-
-| SERVICE     | RPC         | METADATA                               | DESCRIPTION                                                                                                  |
-| ----------- | ----------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| AuthService | Register    | -                                      | User registration via [user microservice](https://github.com/SagarMaheshwary/microservices-user-service) RPC |
-| AuthService | Login       | -                                      | User login via user microservice                                                                             |
-| AuthService | VerifyToken | Bearer token in "authorization" header | Token verification and getting user data via user microservice                                               |
-| AuthService | Logout      | Bearer token in "authorization" header | User logout by adding token to redis blacklist.                                                              |
+| API      | METHOD | BODY | Headers | Description                 |
+| -------- | ------ | ---- | ------- | --------------------------- |
+| /metrics | GET    | -    | -       | Prometheus metrics endpoint |
