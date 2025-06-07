@@ -22,3 +22,5 @@ const HeaderBearerPrefix = "Bearer "
 const (
 	RedisTokenBlacklist = "token-blacklist"
 )
+
+const ServiceName = "Authentication Service"

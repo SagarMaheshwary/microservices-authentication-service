@@ -10,6 +10,8 @@ import (
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/prometheus"
 	authpb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/authentication"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
@@ -26,7 +28,13 @@ func Connect() {
 		logger.Fatal("Failed to create tcp listner on %q: %v", address, err)
 	}
 
-	server := grpc.NewServer(grpc.UnaryInterceptor(prometheusUnaryInterceptor))
+	server := grpc.NewServer(
+		grpc.UnaryInterceptor(prometheusUnaryInterceptor),
+		grpc.StatsHandler(otelgrpc.NewServerHandler(
+			otelgrpc.WithTracerProvider(otel.GetTracerProvider()),
+			otelgrpc.WithPropagators(otel.GetTextMapPropagator()),
+		)),
+	)
 
 	authpb.RegisterAuthenticationServiceServer(server, &authenticationServer{})
 	healthpb.RegisterHealthServer(server, &healthServer{})

@@ -16,8 +16,8 @@ type userClient struct {
 	health healthpb.HealthClient
 }
 
-func (u *userClient) FindById(data *pb.FindByIdRequest) (*pb.FindByIdResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Conf.GRPCClient.Timeout)
+func (u *userClient) FindById(ctx context.Context, data *pb.FindByIdRequest) (*pb.FindByIdResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, config.Conf.GRPCClient.Timeout)
 
 	defer cancel()
 
@@ -33,8 +33,8 @@ func (u *userClient) FindById(data *pb.FindByIdRequest) (*pb.FindByIdResponse, e
 	return response, nil
 }
 
-func (u *userClient) FindByCredential(data *pb.FindByCredentialRequest) (*pb.FindByCredentialResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Conf.GRPCClient.Timeout)
+func (u *userClient) FindByCredential(ctx context.Context, data *pb.FindByCredentialRequest) (*pb.FindByCredentialResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, config.Conf.GRPCClient.Timeout)
 
 	defer cancel()
 
@@ -51,8 +51,8 @@ func (u *userClient) FindByCredential(data *pb.FindByCredentialRequest) (*pb.Fin
 	return response, nil
 }
 
-func (u *userClient) Store(data *pb.StoreRequest) (*pb.StoreResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Conf.GRPCClient.Timeout)
+func (u *userClient) Store(ctx context.Context, data *pb.StoreRequest) (*pb.StoreResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, config.Conf.GRPCClient.Timeout)
 
 	defer cancel()
 

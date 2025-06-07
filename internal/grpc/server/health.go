@@ -15,7 +15,7 @@ type healthServer struct {
 }
 
 func (h *healthServer) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
-	status := getServicesHealthStatus()
+	status := getServicesHealthStatus(ctx)
 
 	logger.Info("Overall health status: %q", status)
 
@@ -32,12 +32,12 @@ func (h *healthServer) Check(ctx context.Context, req *healthpb.HealthCheckReque
 	return response, nil
 }
 
-func getServicesHealthStatus() healthpb.HealthCheckResponse_ServingStatus {
+func getServicesHealthStatus(ctx context.Context) healthpb.HealthCheckResponse_ServingStatus {
 	if !redis.HealthCheck() {
 		return healthpb.HealthCheckResponse_NOT_SERVING
 	}
 
-	if !userrpc.HealthCheck() {
+	if !userrpc.HealthCheck(ctx) {
 		return healthpb.HealthCheckResponse_NOT_SERVING
 	}
 

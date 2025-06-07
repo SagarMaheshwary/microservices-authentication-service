@@ -24,7 +24,7 @@ type authenticationServer struct {
 }
 
 func (a *authenticationServer) Register(ctx context.Context, data *authpb.RegisterRequest) (*authpb.RegisterResponse, error) {
-	clientResponse, err := userrpc.User.Store(&userpb.StoreRequest{
+	clientResponse, err := userrpc.User.Store(ctx, &userpb.StoreRequest{
 		Name:     data.Name,
 		Email:    data.Email,
 		Password: data.Password,
@@ -61,7 +61,7 @@ func (a *authenticationServer) Register(ctx context.Context, data *authpb.Regist
 }
 
 func (a *authenticationServer) Login(ctx context.Context, data *authpb.LoginRequest) (*authpb.LoginResponse, error) {
-	clientResponse, err := userrpc.User.FindByCredential(&userpb.FindByCredentialRequest{
+	clientResponse, err := userrpc.User.FindByCredential(ctx, &userpb.FindByCredentialRequest{
 		Email:    data.Email,
 		Password: data.Password,
 	})
@@ -118,7 +118,7 @@ func (a *authenticationServer) VerifyToken(ctx context.Context, data *authpb.Ver
 
 	userId := claims["id"].(float64)
 
-	clientResponse, err := userrpc.User.FindById(&userpb.FindByIdRequest{
+	clientResponse, err := userrpc.User.FindById(ctx, &userpb.FindByIdRequest{
 		Id: int32(userId),
 	})
 

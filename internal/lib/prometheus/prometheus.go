@@ -1,7 +1,6 @@
 package prometheus
 
 import (
-	"fmt"
 	"net/http"
 
 	prometheuslib "github.com/prometheus/client_golang/prometheus"
@@ -35,17 +34,15 @@ var (
 )
 
 func Connect() {
-	c := config.Conf.Prometheus
-
 	prometheuslib.MustRegister(GRPCRequestCounter, GRPCRequestLatency, ServiceHealth)
 
-	address := fmt.Sprintf("%s:%d", c.METRICS_HOST, c.METRICS_PORT)
+	url := config.Conf.Prometheus.URL
 
 	http.Handle("/metrics", promhttp.Handler())
 
-	logger.Info("Prometheus metrics endpoint running on %s", address)
+	logger.Info("Prometheus metrics endpoint running on %s", url)
 
-	if err := http.ListenAndServe(address, nil); err != nil {
+	if err := http.ListenAndServe(url, nil); err != nil {
 		logger.Error("Failed to create http server for prometheus! %err", err)
 	}
 }

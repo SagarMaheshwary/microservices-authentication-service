@@ -19,6 +19,7 @@ type Config struct {
 	GRPCClient *GRPCClient
 	Redis      *Redis
 	Prometheus *Prometheus
+	Jaeger     *Jaeger
 }
 
 type GRPCServer struct {
@@ -44,8 +45,11 @@ type Redis struct {
 }
 
 type Prometheus struct {
-	METRICS_HOST string
-	METRICS_PORT int
+	URL string
+}
+
+type Jaeger struct {
+	URL string
 }
 
 func Init() {
@@ -81,8 +85,10 @@ func Init() {
 			Password: getEnv("REDIS_PASSWORD", ""),
 		},
 		Prometheus: &Prometheus{
-			METRICS_HOST: getEnv("PROMETHEUS_METRICS_HOST", "localhost"),
-			METRICS_PORT: getEnvInt("PROMETHEUS_METRICS_PORT", 5011),
+			URL: getEnv("PROMETHEUS_URL", "localhost:5012"),
+		},
+		Jaeger: &Jaeger{
+			URL: getEnv("JAEGER_URL", "localhost:4318"),
 		},
 	}
 }
