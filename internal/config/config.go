@@ -85,7 +85,7 @@ func Init() {
 			Password: getEnv("REDIS_PASSWORD", ""),
 		},
 		Prometheus: &Prometheus{
-			URL: getEnv("PROMETHEUS_URL", "localhost:5012"),
+			URL: getEnv("PROMETHEUS_URL", "localhost:5011"),
 		},
 		Jaeger: &Jaeger{
 			URL: getEnv("JAEGER_URL", "localhost:4318"),
