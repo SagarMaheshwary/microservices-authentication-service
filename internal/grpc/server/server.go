@@ -38,7 +38,8 @@ func Serve(server *grpc.Server) error {
 
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
-		logger.Fatal("Failed to create tcp listner on %q: %v", address, err)
+		logger.Error("Failed to create tcp listner on %q: %v", address, err)
+		return err
 	}
 
 	logger.Info("gRPC server started on %q", address)
