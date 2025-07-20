@@ -17,7 +17,6 @@ func GetRootDir() string {
 
 func GetGRPCMetadataValue(md metadata.MD, k string) (string, bool) {
 	v := md.Get(k)
-
 	if len(v) == 0 {
 		return "", false
 	}

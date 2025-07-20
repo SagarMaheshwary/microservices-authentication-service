@@ -14,10 +14,8 @@ import (
 )
 
 func NewToken(id uint, username string) (string, error) {
-	token := jwt.New(jwt.SigningMethodHS256)
-
 	jwtConfig := config.Conf.JWT
-
+	token := jwt.New(jwt.SigningMethodHS256)
 	expiry := time.Now().Add(time.Duration(jwtConfig.Expiry) * time.Second).Unix()
 
 	claims := token.Claims.(jwt.MapClaims)
@@ -34,21 +32,16 @@ func ParseToken(token string) (jwt.MapClaims, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
-
 		return []byte(config.Conf.JWT.Secret), nil
 	})
-
 	if err != nil {
 		logger.Error("Invalid jwt token %v", err)
-
 		return nil, err
 	}
 
 	claims, ok := decoded.Claims.(jwt.MapClaims)
-
 	if !ok {
 		logger.Error("Token parse claims failed %v", claims)
-
 		return nil, errors.New("token parse claims failed")
 	}
 
@@ -58,7 +51,6 @@ func ParseToken(token string) (jwt.MapClaims, error) {
 func AddToBlacklist(jti string, expiry int64) error {
 	key := fmt.Sprintf("%s:%s", constant.RedisTokenBlacklist, jti)
 	expiry = expiry - time.Now().Unix()
-
 	err := redis.Set(key, "", time.Duration(expiry)*time.Second)
 
 	return err
@@ -66,7 +58,6 @@ func AddToBlacklist(jti string, expiry int64) error {
 
 func IsBlacklisted(jti string) bool {
 	key := fmt.Sprintf("%s:%s", constant.RedisTokenBlacklist, jti)
-
 	_, err := redis.Get(key)
 
 	return err == nil

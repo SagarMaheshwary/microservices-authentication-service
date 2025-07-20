@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	libjwt "github.com/golang-jwt/jwt/v5"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/constant"
 	userrpc "github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client/user"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/helper"
@@ -29,15 +30,12 @@ func (a *authenticationServer) Register(ctx context.Context, data *authpb.Regist
 		Email:    data.Email,
 		Password: data.Password,
 	})
-
 	if err != nil {
 		return nil, err
 	}
 
 	user := clientResponse.Data.User
-
 	token, err := jwt.NewToken(uint(user.Id), user.Email)
-
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, REGISTER_RPC_TOKEN_ERROR)
 	}
@@ -56,7 +54,6 @@ func (a *authenticationServer) Register(ctx context.Context, data *authpb.Regist
 			},
 		},
 	}
-
 	return response, nil
 }
 
@@ -65,15 +62,12 @@ func (a *authenticationServer) Login(ctx context.Context, data *authpb.LoginRequ
 		Email:    data.Email,
 		Password: data.Password,
 	})
-
 	if err != nil {
 		return nil, err
 	}
 
 	user := clientResponse.Data.User
-
 	token, err := jwt.NewToken(uint(user.Id), user.Name)
-
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, constant.MessageInternalServerError)
 	}
@@ -92,28 +86,13 @@ func (a *authenticationServer) Login(ctx context.Context, data *authpb.LoginRequ
 			},
 		},
 	}
-
 	return response, nil
 }
 
 func (a *authenticationServer) VerifyToken(ctx context.Context, data *authpb.VerifyTokenRequest) (*authpb.VerifyTokenResponse, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-
-	header, _ := helper.GetGRPCMetadataValue(md, constant.HeaderAuthorization)
-	token, f := strings.CutPrefix(header, constant.HeaderBearerPrefix)
-
-	if !f {
-		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
-	}
-
-	claims, err := jwt.ParseToken(token)
-
+	claims, err := parseAndValidateJwtTokenFromMetadata(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
-	}
-
-	if blacklisted := jwt.IsBlacklisted(claims["jti"].(string)); blacklisted {
-		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
+		return nil, err
 	}
 
 	userId := claims["id"].(float64)
@@ -121,13 +100,11 @@ func (a *authenticationServer) VerifyToken(ctx context.Context, data *authpb.Ver
 	clientResponse, err := userrpc.User.FindById(ctx, &userpb.FindByIdRequest{
 		Id: int32(userId),
 	})
-
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, constant.MessageUnauthorized)
 	}
 
 	user := clientResponse.Data.User
-
 	response := &authpb.VerifyTokenResponse{
 		Message: constant.MessageOK,
 		Data: &authpb.VerifyTokenResponseData{
@@ -141,32 +118,16 @@ func (a *authenticationServer) VerifyToken(ctx context.Context, data *authpb.Ver
 			},
 		},
 	}
-
 	return response, nil
 }
 
 func (a *authenticationServer) Logout(ctx context.Context, data *authpb.LogoutRequest) (*authpb.LogoutResponse, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-
-	header, _ := helper.GetGRPCMetadataValue(md, constant.HeaderAuthorization)
-	token, f := strings.CutPrefix(header, constant.HeaderBearerPrefix)
-
-	if !f {
-		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
-	}
-
-	claims, err := jwt.ParseToken(token)
-
+	claims, err := parseAndValidateJwtTokenFromMetadata(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
-	}
-
-	if blacklisted := jwt.IsBlacklisted(claims["jti"].(string)); blacklisted {
-		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
+		return nil, err
 	}
 
 	err = jwt.AddToBlacklist(claims["jti"].(string), int64(claims["exp"].(float64)))
-
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, constant.MessageInternalServerError)
 	}
@@ -175,6 +136,24 @@ func (a *authenticationServer) Logout(ctx context.Context, data *authpb.LogoutRe
 		Message: constant.MessageOK,
 		Data:    &authpb.LogoutResponseData{},
 	}
-
 	return response, nil
+}
+
+func parseAndValidateJwtTokenFromMetadata(ctx context.Context) (libjwt.MapClaims, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	header, _ := helper.GetGRPCMetadataValue(md, constant.HeaderAuthorization)
+	token, f := strings.CutPrefix(header, constant.HeaderBearerPrefix)
+	if !f {
+		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
+	}
+
+	claims, err := jwt.ParseToken(token)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
+	}
+	if blacklisted := jwt.IsBlacklisted(claims["jti"].(string)); blacklisted {
+		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
+	}
+
+	return claims, nil
 }

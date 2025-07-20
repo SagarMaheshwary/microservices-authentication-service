@@ -34,11 +34,9 @@ func NewServer() *grpc.Server {
 
 func Serve(server *grpc.Server) error {
 	c := config.Conf.GRPCServer
-
 	address := fmt.Sprintf("%s:%d", c.Host, c.Port)
 
 	listener, err := net.Listen("tcp", address)
-
 	if err != nil {
 		logger.Fatal("Failed to create tcp listner on %q: %v", address, err)
 	}
@@ -47,7 +45,6 @@ func Serve(server *grpc.Server) error {
 
 	if err := server.Serve(listener); err != nil {
 		logger.Error("gRPC server failed to start %v", err)
-
 		return err
 	}
 

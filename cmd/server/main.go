@@ -40,10 +40,9 @@ func main() {
 	defer userConn.Close()
 
 	grpcServer := server.NewServer()
-
 	go func() {
 		if err := server.Serve(grpcServer); err != nil {
-			stop()
+			os.Exit(constant.ExitFailure)
 		}
 	}()
 
