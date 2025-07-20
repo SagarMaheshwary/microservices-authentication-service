@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 var ctx = context.Background()
 var client *redislib.Client
 
-func Connect() {
+func InitClient() error {
 	c := config.Conf.Redis
 
 	addr := fmt.Sprintf("%s:%d", c.Host, c.Port)
@@ -24,23 +25,25 @@ func Connect() {
 		Password: c.Password,
 	})
 
-	if !HealthCheck() {
+	if err := HealthCheck(); err != nil {
 		logger.Error("Unable to connect to redis")
 
-		return
+		return err
 	}
 
 	logger.Info("Redis server connected on %q", addr)
+
+	return nil
 }
 
-func HealthCheck() bool {
+func HealthCheck() error {
 	if pong := client.Ping(ctx); pong.Val() != "PONG" {
 		logger.Error("Redis health check failed! %q", pong.Val())
 
-		return false
+		return errors.New("Redis health check failed")
 	}
 
-	return true
+	return nil
 }
 
 func Get(key string) (string, error) {

@@ -33,11 +33,11 @@ func (h *healthServer) Check(ctx context.Context, req *healthpb.HealthCheckReque
 }
 
 func getServicesHealthStatus(ctx context.Context) healthpb.HealthCheckResponse_ServingStatus {
-	if !redis.HealthCheck() {
+	if err := redis.HealthCheck(); err != nil {
 		return healthpb.HealthCheckResponse_NOT_SERVING
 	}
 
-	if !userrpc.HealthCheck(ctx) {
+	if err := userrpc.HealthCheck(ctx); err != nil {
 		return healthpb.HealthCheckResponse_NOT_SERVING
 	}
 

@@ -24,3 +24,5 @@ const (
 )
 
 const ServiceName = "Authentication Service"
+
+const ExitFailure = 1

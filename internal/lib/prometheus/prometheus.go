@@ -33,16 +33,23 @@ var (
 	})
 )
 
-func Connect() {
+func NewServer() *http.Server {
 	prometheuslib.MustRegister(GRPCRequestCounter, GRPCRequestLatency, ServiceHealth)
 
 	url := config.Conf.Prometheus.URL
 
-	http.Handle("/metrics", promhttp.Handler())
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
 
-	logger.Info("Prometheus metrics endpoint running on %s", url)
+	server := &http.Server{Addr: url, Handler: mux}
 
-	if err := http.ListenAndServe(url, nil); err != nil {
-		logger.Error("Failed to create http server for prometheus! %err", err)
+	return server
+}
+
+func Serve(server *http.Server) {
+	logger.Info("Starting Prometheus metrics server %s", server.Addr)
+
+	if err := server.ListenAndServe(); err != nil {
+		logger.Error("Prometheus http server error! %v", err)
 	}
 }

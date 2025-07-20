@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"errors"
 
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
@@ -13,7 +14,7 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
-func Connect(ctx context.Context) {
+func InitClient(ctx context.Context) (*grpc.ClientConn, error) {
 	var opts []grpc.DialOption
 
 	opts = append(
@@ -27,25 +28,28 @@ func Connect(ctx context.Context) {
 
 	address := config.Conf.GRPCClient.UserServiceURL
 
-	connection, err := grpc.Dial(address, opts...)
+	conn, err := grpc.Dial(address, opts...)
 
 	if err != nil {
 		logger.Error("User gRPC failed to connect on %q: %v", address, err)
-
-		return
+		return nil, err
 	}
 
 	User = &userClient{
-		client: pb.NewUserServiceClient(connection),
-		health: healthpb.NewHealthClient(connection),
+		client: pb.NewUserServiceClient(conn),
+		health: healthpb.NewHealthClient(conn),
 	}
 
-	if HealthCheck(ctx) {
-		logger.Info("User gRPC client connected on %q", address)
+	if err := HealthCheck(ctx); err != nil {
+		return nil, err
 	}
+
+	logger.Info("User gRPC client connected on %q", address)
+
+	return conn, err
 }
 
-func HealthCheck(ctx context.Context) bool {
+func HealthCheck(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, config.Conf.GRPCClient.Timeout)
 	defer cancel()
 
@@ -53,15 +57,13 @@ func HealthCheck(ctx context.Context) bool {
 
 	if err != nil {
 		logger.Error("User gRPC health check failed! %v", err)
-
-		return false
+		return err
 	}
 
 	if response.Status == healthpb.HealthCheckResponse_NOT_SERVING {
 		logger.Error("User gRPC health check failed!")
-
-		return false
+		return errors.New("User gRPC health check failed")
 	}
 
-	return true
+	return nil
 }
