@@ -10,10 +10,11 @@ Authentication Service for the [Microservices](https://github.com/SagarMaheshwar
 - JWT (JSON Web Tokens) – Used for authentication and secure communication
 - Redis - Maintains the token blacklist
 - Prometheus Client – Exports default and custom metrics for Prometheus server monitoring
+- Jaeger – Distributed request tracing
 
 ### SETUP
 
-Follow the instructions in the [README](https://github.com/SagarMaheshwary/microservices?tab=readme-ov-file#setup) of the main microservices repository to run this service along with others using Docker Compose.
+Follow the instructions in the [README](https://github.com/SagarMaheshwary/microservices?tab=readme-ov-file#setup) of the main microservices repository to run this service along with others using Docker Compose or Kubernetes (KIND).
 
 ### APIs (gRPC)
 

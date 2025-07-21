@@ -29,12 +29,12 @@ type GRPCServer struct {
 
 type GRPCClient struct {
 	UserServiceURL string
-	Timeout        time.Duration
+	TimeoutSeconds time.Duration
 }
 
 type JWT struct {
-	Secret string
-	Expiry int
+	Secret        string
+	ExpirySeconds time.Duration
 }
 
 type Redis struct {
@@ -71,12 +71,12 @@ func Init() {
 			Port: getEnvInt("GRPC_PORT", 5001),
 		},
 		JWT: &JWT{
-			Secret: getEnv("JWT_SECRET", ""),
-			Expiry: getEnvInt("JWT_EXPIRY_SECONDS", 3600),
+			Secret:        getEnv("JWT_SECRET", ""),
+			ExpirySeconds: getEnvDurationSeconds("JWT_EXPIRY_SECONDS", 3600),
 		},
 		GRPCClient: &GRPCClient{
 			UserServiceURL: getEnv("GRPC_USER_SERVICE_URL", "localhost:5000"),
-			Timeout:        getEnvDuration("GRPC_CLIENT_TIMEOUT_SECONDS", 5),
+			TimeoutSeconds: getEnvDurationSeconds("GRPC_CLIENT_TIMEOUT_SECONDS", 5),
 		},
 		Redis: &Redis{
 			Host:     getEnv("REDIS_HOST", "localhost"),
@@ -109,7 +109,7 @@ func getEnvInt(key string, defaultVal int) int {
 	return defaultVal
 }
 
-func getEnvDuration(key string, defaultVal time.Duration) time.Duration {
+func getEnvDurationSeconds(key string, defaultVal time.Duration) time.Duration {
 	if val, err := strconv.Atoi(os.Getenv(key)); err == nil {
 		return time.Duration(val) * time.Second
 	}

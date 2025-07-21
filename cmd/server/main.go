@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"net/http"
 	"os"
 	"os/signal"
 	"time"
@@ -28,7 +29,11 @@ func main() {
 	shutdownJaeger := jaeger.Init(ctx)
 
 	promServer := prometheus.NewServer()
-	go prometheus.Serve(promServer)
+	go func() {
+		if err := prometheus.Serve(promServer); err != nil && err != http.ErrServerClosed {
+			stop()
+		}
+	}()
 
 	if err := redis.InitClient(); err != nil {
 		os.Exit(constant.ExitFailure)

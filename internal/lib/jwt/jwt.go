@@ -16,7 +16,7 @@ import (
 func NewToken(id uint, username string) (string, error) {
 	jwtConfig := config.Conf.JWT
 	token := jwt.New(jwt.SigningMethodHS256)
-	expiry := time.Now().Add(time.Duration(jwtConfig.Expiry) * time.Second).Unix()
+	expiry := time.Now().Add(jwtConfig.ExpirySeconds).Unix()
 
 	claims := token.Claims.(jwt.MapClaims)
 	claims["id"] = id

@@ -46,10 +46,13 @@ func NewServer() *http.Server {
 	return server
 }
 
-func Serve(server *http.Server) {
+func Serve(server *http.Server) error {
 	logger.Info("Starting Prometheus metrics server %s", server.Addr)
 
 	if err := server.ListenAndServe(); err != nil {
 		logger.Error("Prometheus http server error! %v", err)
+		return err
 	}
+
+	return nil
 }

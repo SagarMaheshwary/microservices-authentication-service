@@ -28,8 +28,7 @@ func InitClient(ctx context.Context) (*grpc.ClientConn, error) {
 
 	address := config.Conf.GRPCClient.UserServiceURL
 
-	conn, err := grpc.Dial(address, opts...)
-
+	conn, err := grpc.NewClient(address, opts...)
 	if err != nil {
 		logger.Error("User gRPC failed to connect on %q: %v", address, err)
 		return nil, err
@@ -50,7 +49,7 @@ func InitClient(ctx context.Context) (*grpc.ClientConn, error) {
 }
 
 func HealthCheck(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, config.Conf.GRPCClient.Timeout)
+	ctx, cancel := context.WithTimeout(ctx, config.Conf.GRPCClient.TimeoutSeconds)
 	defer cancel()
 
 	response, err := User.health.Check(ctx, &healthpb.HealthCheckRequest{})
