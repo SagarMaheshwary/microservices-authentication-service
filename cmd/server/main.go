@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/signal"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/prometheus"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/redis"
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -41,8 +43,8 @@ func main() {
 
 	grpcServer := server.NewServer()
 	go func() {
-		if err := server.Serve(grpcServer); err != nil {
-			os.Exit(constant.ExitFailure)
+		if err := server.Serve(grpcServer); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+			stop()
 		}
 	}()
 
