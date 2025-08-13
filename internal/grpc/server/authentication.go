@@ -69,7 +69,7 @@ func (a *authenticationServer) Login(ctx context.Context, data *authpb.LoginRequ
 	user := clientResponse.Data.User
 	token, err := jwt.NewToken(uint(user.Id), user.Name)
 	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, constant.MessageInternalServerError)
+		return nil, status.Error(codes.Unauthenticated, constant.MessageUnauthorized)
 	}
 
 	response := &authpb.LoginResponse{
@@ -101,7 +101,7 @@ func (a *authenticationServer) VerifyToken(ctx context.Context, data *authpb.Ver
 		Id: int32(userId),
 	})
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, constant.MessageUnauthorized)
+		return nil, status.Error(codes.Unauthenticated, constant.MessageUnauthorized)
 	}
 
 	user := clientResponse.Data.User
@@ -129,7 +129,7 @@ func (a *authenticationServer) Logout(ctx context.Context, data *authpb.LogoutRe
 
 	err = jwt.AddToBlacklist(claims["jti"].(string), int64(claims["exp"].(float64)))
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, constant.MessageInternalServerError)
+		return nil, status.Error(codes.Unauthenticated, constant.MessageUnauthorized)
 	}
 
 	response := &authpb.LogoutResponse{
@@ -140,19 +140,22 @@ func (a *authenticationServer) Logout(ctx context.Context, data *authpb.LogoutRe
 }
 
 func parseAndValidateJwtTokenFromMetadata(ctx context.Context) (libjwt.MapClaims, error) {
+	authErr := status.Error(codes.Unauthenticated, constant.MessageUnauthorized)
+
 	md, _ := metadata.FromIncomingContext(ctx)
 	header, _ := helper.GetGRPCMetadataValue(md, constant.HeaderAuthorization)
 	token, f := strings.CutPrefix(header, constant.HeaderBearerPrefix)
 	if !f {
-		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
+		return nil, authErr
 	}
 
 	claims, err := jwt.ParseToken(token)
 	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
+		return nil, authErr
 	}
+
 	if blacklisted := jwt.IsBlacklisted(claims["jti"].(string)); blacklisted {
-		return nil, status.Errorf(codes.Unauthenticated, constant.MessageUnauthorized)
+		return nil, authErr
 	}
 
 	return claims, nil
