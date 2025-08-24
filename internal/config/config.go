@@ -3,7 +3,6 @@ package config
 import (
 	"os"
 	"path"
-	"strconv"
 	"time"
 
 	"github.com/gofor-little/env"
@@ -11,30 +10,27 @@ import (
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
 )
 
-var Conf *Config
-
 type Config struct {
-	GRPCServer *GRPCServer
-	JWT        *JWT
-	GRPCClient *GRPCClient
-	Redis      *Redis
-	Prometheus *Prometheus
-	Jaeger     *Jaeger
+	GRPCServer     *GRPCServer
+	JWT            *JWT
+	GRPCUserClient *GRPCUserClient
+	Redis          *Redis
+	Prometheus     *Prometheus
+	Jaeger         *Jaeger
 }
 
 type GRPCServer struct {
-	Host string
-	Port int
+	URL string
 }
 
-type GRPCClient struct {
-	UserServiceURL string
-	TimeoutSeconds time.Duration
+type GRPCUserClient struct {
+	URL     string
+	Timeout time.Duration
 }
 
 type JWT struct {
-	Secret        string
-	ExpirySeconds time.Duration
+	Secret string
+	Expiry time.Duration
 }
 
 type Redis struct {
@@ -52,67 +48,63 @@ type Jaeger struct {
 	URL string
 }
 
-func Init() {
-	envPath := path.Join(helper.GetRootDir(), "..", ".env")
+type LoaderOptions struct {
+	EnvPath     string
+	EnvLoader   func(string) error
+	FileChecker func(string) bool
+}
 
-	if _, err := os.Stat(envPath); err == nil {
-		if err := env.Load(envPath); err != nil {
-			logger.Fatal("Failed to load .env %q: %v", envPath, err)
+func NewConfigWithOptions(opts LoaderOptions) *Config {
+	envLoader := opts.EnvLoader
+	if envLoader == nil {
+		envLoader = func(path string) error { return env.Load(path) }
+	}
+	fileChecker := opts.FileChecker
+	if fileChecker == nil {
+		fileChecker = func(path string) bool {
+			_, err := os.Stat(path)
+			return err == nil
 		}
+	}
 
-		logger.Info("Loaded environment variables from %q", envPath)
+	if opts.EnvPath != "" && fileChecker(opts.EnvPath) {
+		if err := envLoader(opts.EnvPath); err != nil {
+			logger.Panic("Failed to load .env %q: %v", opts.EnvPath, err)
+		}
+		logger.Info("Loaded environment variables from %q", opts.EnvPath)
 	} else {
 		logger.Info(".env file not found, using system environment variables")
 	}
 
-	Conf = &Config{
+	return &Config{
 		GRPCServer: &GRPCServer{
-			Host: getEnv("GRPC_HOST", "localhost"),
-			Port: getEnvInt("GRPC_PORT", 5001),
+			URL: helper.GetEnv("GRPC_SERVER_URL", "0.0.0.0:5001"),
 		},
 		JWT: &JWT{
-			Secret:        getEnv("JWT_SECRET", ""),
-			ExpirySeconds: getEnvDurationSeconds("JWT_EXPIRY_SECONDS", 3600),
+			Secret: helper.GetEnv("JWT_SECRET", "secret-key"),
+			Expiry: helper.GetEnvDurationSeconds("JWT_EXPIRY_SECONDS", 3600),
 		},
-		GRPCClient: &GRPCClient{
-			UserServiceURL: getEnv("GRPC_USER_SERVICE_URL", "localhost:5000"),
-			TimeoutSeconds: getEnvDurationSeconds("GRPC_CLIENT_TIMEOUT_SECONDS", 5),
+		GRPCUserClient: &GRPCUserClient{
+			URL:     helper.GetEnv("GRPC_USER_SERVICE_URL", "user-service:5000"),
+			Timeout: helper.GetEnvDurationSeconds("GRPC_USER_SERVICE_TIMEOUT_SECONDS", 5),
 		},
 		Redis: &Redis{
-			Host:     getEnv("REDIS_HOST", "localhost"),
-			Port:     getEnvInt("REDIS_PORT", 6379),
-			Username: getEnv("REDIS_USERNAME", ""),
-			Password: getEnv("REDIS_PASSWORD", ""),
+			Host:     helper.GetEnv("REDIS_HOST", "redis"),
+			Port:     helper.GetEnvInt("REDIS_PORT", 6379),
+			Username: helper.GetEnv("REDIS_USERNAME", "default"),
+			Password: helper.GetEnv("REDIS_PASSWORD", "password"),
 		},
 		Prometheus: &Prometheus{
-			URL: getEnv("PROMETHEUS_URL", "localhost:5011"),
+			URL: helper.GetEnv("PROMETHEUS_URL", "0.0.0.0:5011"),
 		},
 		Jaeger: &Jaeger{
-			URL: getEnv("JAEGER_URL", "localhost:4318"),
+			URL: helper.GetEnv("JAEGER_URL", "jaeger:4318"),
 		},
 	}
 }
 
-func getEnv(key string, defaultVal string) string {
-	if val := os.Getenv(key); val != "" {
-		return val
-	}
-
-	return defaultVal
-}
-
-func getEnvInt(key string, defaultVal int) int {
-	if val, err := strconv.Atoi(os.Getenv(key)); err == nil {
-		return val
-	}
-
-	return defaultVal
-}
-
-func getEnvDurationSeconds(key string, defaultVal time.Duration) time.Duration {
-	if val, err := strconv.Atoi(os.Getenv(key)); err == nil {
-		return time.Duration(val) * time.Second
-	}
-
-	return defaultVal * time.Second
+func NewConfig() *Config {
+	return NewConfigWithOptions(LoaderOptions{
+		EnvPath: path.Join(helper.GetRootDir(), "..", ".env"),
+	})
 }

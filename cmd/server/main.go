@@ -8,11 +8,13 @@ import (
 	"os/signal"
 	"time"
 
+	prometheuslib "github.com/prometheus/client_golang/prometheus"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/constant"
-	userrpc "github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client/user"
+	user "github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client/user"
 	server "github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/server"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/jaeger"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/jwt"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/prometheus"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/redis"
@@ -21,34 +23,38 @@ import (
 
 func main() {
 	logger.Init()
-	config.Init()
+	cfg := config.NewConfig()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	shutdownJaeger := jaeger.Init(ctx)
+	shutdownJaeger := jaeger.Init(ctx, cfg.Jaeger.URL)
 
-	promServer := prometheus.NewServer()
+	promServer := prometheus.NewServer(cfg.Prometheus.URL, prometheuslib.NewRegistry())
 	go func() {
-		if err := prometheus.Serve(promServer); err != nil && err != http.ErrServerClosed {
+		if err := prometheus.Serve(promServer, promServer.ListenAndServe); err != nil && err != http.ErrServerClosed {
 			stop()
 		}
 	}()
 
-	if err := redis.InitClient(); err != nil {
+	redisClient, err := redis.NewClient(cfg.Redis)
+	if err != nil {
 		os.Exit(constant.ExitFailure)
 	}
+	defer redisClient.Close()
 
-	userConn, err := userrpc.InitClient(ctx)
+	userClient, userConn, err := user.NewClient(ctx, &user.InitClientOptions{Config: cfg.GRPCUserClient})
 	if err != nil {
-		logger.Error("Failed to init User client: %v", err)
+		logger.Error("Failed to connect to user client: %v", err)
 		os.Exit(constant.ExitFailure)
 	}
 	defer userConn.Close()
 
-	grpcServer := server.NewServer()
+	jwtManager := jwt.NewJWTManager(cfg.JWT, redisClient)
+
+	grpcServer := server.NewServer(userClient, redisClient, jwtManager)
 	go func() {
-		if err := server.Serve(grpcServer); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+		if err := server.Serve(cfg.GRPCServer.URL, grpcServer); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
 			stop()
 		}
 	}()

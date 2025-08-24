@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 
-	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/constant"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -14,9 +13,9 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 )
 
-func Init(ctx context.Context) func(context.Context) error {
+func Init(ctx context.Context, url string) func(context.Context) error {
 	exporter, err := otlptracehttp.New(ctx,
-		otlptracehttp.WithEndpoint(config.Conf.Jaeger.URL),
+		otlptracehttp.WithEndpoint(url),
 		otlptracehttp.WithInsecure(),
 	)
 

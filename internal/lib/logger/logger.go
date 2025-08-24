@@ -33,3 +33,7 @@ func Error(format string, v ...interface{}) {
 func Fatal(format string, v ...interface{}) {
 	log.Fatal().Msgf(format, v...)
 }
+
+func Panic(format string, v ...interface{}) {
+	log.Panic().Msgf(format, v...)
+}

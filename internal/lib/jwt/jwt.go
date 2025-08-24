@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -9,14 +10,33 @@ import (
 	"github.com/google/uuid"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/constant"
-	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/redis"
 )
 
-func NewToken(id uint, username string) (string, error) {
-	jwtConfig := config.Conf.JWT
+type JWTManager interface {
+	NewToken(id uint, username string) (string, error)
+	ParseToken(token string) (jwt.MapClaims, error)
+	AddToBlacklist(ctx context.Context, jti string, expiry int64) error
+	IsBlacklisted(ctx context.Context, jti string) bool
+}
+
+type jwtManager struct {
+	secret []byte
+	expiry time.Duration
+	redis  redis.RedisService
+}
+
+func NewJWTManager(cfg *config.JWT, redis redis.RedisService) JWTManager {
+	return &jwtManager{
+		secret: []byte(cfg.Secret),
+		expiry: cfg.Expiry,
+		redis:  redis,
+	}
+}
+
+func (j *jwtManager) NewToken(id uint, username string) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
-	expiry := time.Now().Add(jwtConfig.ExpirySeconds).Unix()
+	expiry := time.Now().Add(j.expiry).Unix()
 
 	claims := token.Claims.(jwt.MapClaims)
 	claims["id"] = id
@@ -24,41 +44,39 @@ func NewToken(id uint, username string) (string, error) {
 	claims["exp"] = expiry
 	claims["jti"] = uuid.New().String()
 
-	return token.SignedString([]byte(jwtConfig.Secret))
+	return token.SignedString(j.secret)
 }
 
-func ParseToken(token string) (jwt.MapClaims, error) {
+func (j *jwtManager) ParseToken(token string) (jwt.MapClaims, error) {
 	decoded, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
-		return []byte(config.Conf.JWT.Secret), nil
+		return j.secret, nil
 	})
 	if err != nil {
-		logger.Error("Invalid jwt token %v", err)
 		return nil, err
 	}
 
 	claims, ok := decoded.Claims.(jwt.MapClaims)
 	if !ok {
-		logger.Error("Token parse claims failed %v", claims)
 		return nil, errors.New("token parse claims failed")
 	}
 
 	return claims, nil
 }
 
-func AddToBlacklist(jti string, expiry int64) error {
+func (j *jwtManager) AddToBlacklist(ctx context.Context, jti string, expiry int64) error {
 	key := fmt.Sprintf("%s:%s", constant.RedisTokenBlacklist, jti)
-	expiry = expiry - time.Now().Unix()
-	err := redis.Set(key, "", time.Duration(expiry)*time.Second)
-
-	return err
+	exp := expiry - time.Now().Unix()
+	if exp <= 0 {
+		return nil // already expired
+	}
+	return j.redis.Set(ctx, key, "", time.Duration(exp)*time.Second)
 }
 
-func IsBlacklisted(jti string) bool {
+func (j *jwtManager) IsBlacklisted(ctx context.Context, jti string) bool {
 	key := fmt.Sprintf("%s:%s", constant.RedisTokenBlacklist, jti)
-	_, err := redis.Get(key)
-
+	_, err := j.redis.Get(ctx, key)
 	return err == nil
 }

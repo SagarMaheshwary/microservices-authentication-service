@@ -1,71 +1,62 @@
+// server.go
 package server
 
 import (
-	"context"
-	"fmt"
 	"net"
-	"time"
 
-	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client/user"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/server/interceptors"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/jwt"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
-	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/prometheus"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/redis"
 	authpb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/authentication"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
-	"google.golang.org/grpc/status"
 )
 
-func NewServer() *grpc.Server {
-	server := grpc.NewServer(
-		grpc.UnaryInterceptor(prometheusUnaryInterceptor),
+func NewServer(
+	userClient user.UserService,
+	redisClient redis.RedisService,
+	jwtManager jwt.JWTManager,
+) *grpc.Server {
+	// Create gRPC server with interceptors & tracing
+	s := grpc.NewServer(
+		grpc.UnaryInterceptor(interceptors.PrometheusUnaryInterceptor),
 		grpc.StatsHandler(otelgrpc.NewServerHandler(
 			otelgrpc.WithTracerProvider(otel.GetTracerProvider()),
 			otelgrpc.WithPropagators(otel.GetTextMapPropagator()),
 		)),
 	)
 
-	authpb.RegisterAuthenticationServiceServer(server, &authenticationServer{})
-	healthpb.RegisterHealthServer(server, &healthServer{})
+	authpb.RegisterAuthenticationServiceServer(s, &AuthenticationServer{
+		UserClient: userClient,
+		JWTManager: jwtManager,
+	})
 
-	return server
+	healthpb.RegisterHealthServer(s, &HealthServer{
+		UserClient:  userClient,
+		RedisClient: redisClient,
+	})
+
+	return s
 }
 
-func Serve(server *grpc.Server) error {
-	c := config.Conf.GRPCServer
-	address := fmt.Sprintf("%s:%d", c.Host, c.Port)
-
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		logger.Error("Failed to create tcp listner on %q: %v", address, err)
-		return err
-	}
-
-	logger.Info("gRPC server started on %q", address)
-
+func ServeListener(listener net.Listener, server *grpc.Server) error {
+	logger.Info("gRPC server started on %q", listener.Addr().String())
 	if err := server.Serve(listener); err != nil {
-		logger.Error("gRPC server failed to start %v", err)
+		logger.Error("gRPC server failed: %v", err)
 		return err
 	}
-
 	return nil
 }
 
-func prometheusUnaryInterceptor(
-	ctx context.Context,
-	req interface{},
-	info *grpc.UnaryServerInfo,
-	handler grpc.UnaryHandler,
-) (interface{}, error) {
-	start := time.Now()
-
-	response, err := handler(ctx, req)
-
-	method := info.FullMethod
-	statusCode := status.Code(err).String()
-	prometheus.GRPCRequestCounter.WithLabelValues(method, statusCode).Inc()
-	prometheus.GRPCRequestLatency.WithLabelValues(method).Observe(time.Since(start).Seconds())
-
-	return response, err
+func Serve(url string, server *grpc.Server) error {
+	listener, err := net.Listen("tcp", url)
+	if err != nil {
+		logger.Error("Failed to create tcp listener on %q: %v", url, err)
+		return err
+	}
+	return ServeListener(listener, server)
 }

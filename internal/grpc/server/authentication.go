@@ -6,7 +6,7 @@ import (
 
 	libjwt "github.com/golang-jwt/jwt/v5"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/constant"
-	userrpc "github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client/user"
+	"github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client/user"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/helper"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/jwt"
 	authpb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/authentication"
@@ -20,12 +20,14 @@ const (
 	REGISTER_RPC_TOKEN_ERROR = "User successfully registered, but there was a problem creating the authentication token. Please try manual login."
 )
 
-type authenticationServer struct {
+type AuthenticationServer struct {
 	authpb.AuthenticationServiceServer
+	UserClient user.UserService
+	JWTManager jwt.JWTManager
 }
 
-func (a *authenticationServer) Register(ctx context.Context, data *authpb.RegisterRequest) (*authpb.RegisterResponse, error) {
-	clientResponse, err := userrpc.User.Store(ctx, &userpb.StoreRequest{
+func (a *AuthenticationServer) Register(ctx context.Context, data *authpb.RegisterRequest) (*authpb.RegisterResponse, error) {
+	clientResponse, err := a.UserClient.Store(ctx, &userpb.StoreRequest{
 		Name:     data.Name,
 		Email:    data.Email,
 		Password: data.Password,
@@ -35,7 +37,7 @@ func (a *authenticationServer) Register(ctx context.Context, data *authpb.Regist
 	}
 
 	user := clientResponse.Data.User
-	token, err := jwt.NewToken(uint(user.Id), user.Email)
+	token, err := a.JWTManager.NewToken(uint(user.Id), user.Email)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, REGISTER_RPC_TOKEN_ERROR)
 	}
@@ -57,8 +59,8 @@ func (a *authenticationServer) Register(ctx context.Context, data *authpb.Regist
 	return response, nil
 }
 
-func (a *authenticationServer) Login(ctx context.Context, data *authpb.LoginRequest) (*authpb.LoginResponse, error) {
-	clientResponse, err := userrpc.User.FindByCredential(ctx, &userpb.FindByCredentialRequest{
+func (a *AuthenticationServer) Login(ctx context.Context, data *authpb.LoginRequest) (*authpb.LoginResponse, error) {
+	clientResponse, err := a.UserClient.FindByCredential(ctx, &userpb.FindByCredentialRequest{
 		Email:    data.Email,
 		Password: data.Password,
 	})
@@ -67,7 +69,7 @@ func (a *authenticationServer) Login(ctx context.Context, data *authpb.LoginRequ
 	}
 
 	user := clientResponse.Data.User
-	token, err := jwt.NewToken(uint(user.Id), user.Name)
+	token, err := a.JWTManager.NewToken(uint(user.Id), user.Name)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, constant.MessageUnauthorized)
 	}
@@ -89,15 +91,15 @@ func (a *authenticationServer) Login(ctx context.Context, data *authpb.LoginRequ
 	return response, nil
 }
 
-func (a *authenticationServer) VerifyToken(ctx context.Context, data *authpb.VerifyTokenRequest) (*authpb.VerifyTokenResponse, error) {
-	claims, err := parseAndValidateJwtTokenFromMetadata(ctx)
+func (a *AuthenticationServer) VerifyToken(ctx context.Context, data *authpb.VerifyTokenRequest) (*authpb.VerifyTokenResponse, error) {
+	claims, err := parseAndValidateJwtTokenFromMetadata(ctx, a.JWTManager)
 	if err != nil {
 		return nil, err
 	}
 
 	userId := claims["id"].(float64)
 
-	clientResponse, err := userrpc.User.FindById(ctx, &userpb.FindByIdRequest{
+	clientResponse, err := a.UserClient.FindById(ctx, &userpb.FindByIdRequest{
 		Id: int32(userId),
 	})
 	if err != nil {
@@ -121,13 +123,13 @@ func (a *authenticationServer) VerifyToken(ctx context.Context, data *authpb.Ver
 	return response, nil
 }
 
-func (a *authenticationServer) Logout(ctx context.Context, data *authpb.LogoutRequest) (*authpb.LogoutResponse, error) {
-	claims, err := parseAndValidateJwtTokenFromMetadata(ctx)
+func (a *AuthenticationServer) Logout(ctx context.Context, data *authpb.LogoutRequest) (*authpb.LogoutResponse, error) {
+	claims, err := parseAndValidateJwtTokenFromMetadata(ctx, a.JWTManager)
 	if err != nil {
 		return nil, err
 	}
 
-	err = jwt.AddToBlacklist(claims["jti"].(string), int64(claims["exp"].(float64)))
+	err = a.JWTManager.AddToBlacklist(ctx, claims["jti"].(string), int64(claims["exp"].(float64)))
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, constant.MessageUnauthorized)
 	}
@@ -139,7 +141,7 @@ func (a *authenticationServer) Logout(ctx context.Context, data *authpb.LogoutRe
 	return response, nil
 }
 
-func parseAndValidateJwtTokenFromMetadata(ctx context.Context) (libjwt.MapClaims, error) {
+func parseAndValidateJwtTokenFromMetadata(ctx context.Context, jwtManager jwt.JWTManager) (libjwt.MapClaims, error) {
 	authErr := status.Error(codes.Unauthenticated, constant.MessageUnauthorized)
 
 	md, _ := metadata.FromIncomingContext(ctx)
@@ -149,12 +151,12 @@ func parseAndValidateJwtTokenFromMetadata(ctx context.Context) (libjwt.MapClaims
 		return nil, authErr
 	}
 
-	claims, err := jwt.ParseToken(token)
+	claims, err := jwtManager.ParseToken(token)
 	if err != nil {
 		return nil, authErr
 	}
 
-	if blacklisted := jwt.IsBlacklisted(claims["jti"].(string)); blacklisted {
+	if blacklisted := jwtManager.IsBlacklisted(ctx, claims["jti"].(string)); blacklisted {
 		return nil, authErr
 	}
 

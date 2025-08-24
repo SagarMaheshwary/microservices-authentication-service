@@ -2,11 +2,10 @@ package user
 
 import (
 	"context"
-	"errors"
 
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
-	pb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/user"
+	userpb "github.com/sagarmaheshwary/microservices-authentication-service/internal/proto/user"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc"
@@ -14,55 +13,66 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
-func InitClient(ctx context.Context) (*grpc.ClientConn, error) {
-	var opts []grpc.DialOption
+type DialFunc func(target string, opts ...grpc.DialOption) (*grpc.ClientConn, error)
 
-	opts = append(
-		opts,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithStatsHandler(otelgrpc.NewClientHandler(
-			otelgrpc.WithTracerProvider(otel.GetTracerProvider()),
-			otelgrpc.WithPropagators(otel.GetTextMapPropagator()),
-		)),
-	)
+type ClientFactory func(c userpb.UserServiceClient, h healthpb.HealthClient, cfg *config.GRPCUserClient) UserService
 
-	address := config.Conf.GRPCClient.UserServiceURL
-
-	conn, err := grpc.NewClient(address, opts...)
-	if err != nil {
-		logger.Error("User gRPC failed to connect on %q: %v", address, err)
-		return nil, err
-	}
-
-	User = &userClient{
-		client: pb.NewUserServiceClient(conn),
-		health: healthpb.NewHealthClient(conn),
-	}
-
-	if err := HealthCheck(ctx); err != nil {
-		return nil, err
-	}
-
-	logger.Info("User gRPC client connected on %q", address)
-
-	return conn, err
+type InitClientOptions struct {
+	Config          *config.GRPCUserClient
+	Dial            DialFunc
+	Factory         ClientFactory
+	DialOptions     []grpc.DialOption
+	SkipHealthCheck bool
 }
 
-func HealthCheck(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, config.Conf.GRPCClient.TimeoutSeconds)
-	defer cancel()
+func defaultDialer(target string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	return grpc.NewClient(target, opts...)
+}
 
-	response, err := User.health.Check(ctx, &healthpb.HealthCheckRequest{})
+func defaultFactory(c userpb.UserServiceClient, h healthpb.HealthClient, cfg *config.GRPCUserClient) UserService {
+	return NewUserClient(c, h, cfg)
+}
 
+func NewClient(ctx context.Context, opt *InitClientOptions) (UserService, *grpc.ClientConn, error) {
+	if opt == nil {
+		opt = &InitClientOptions{}
+	}
+	if opt.Dial == nil {
+		opt.Dial = defaultDialer
+	}
+	if opt.Factory == nil {
+		opt.Factory = defaultFactory
+	}
+	if len(opt.DialOptions) == 0 {
+		opt.DialOptions = []grpc.DialOption{
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler(
+				otelgrpc.WithTracerProvider(otel.GetTracerProvider()),
+				otelgrpc.WithPropagators(otel.GetTextMapPropagator()),
+			)),
+		}
+	}
+
+	conn, err := opt.Dial(opt.Config.URL, opt.DialOptions...)
 	if err != nil {
-		logger.Error("User gRPC health check failed! %v", err)
-		return err
+		logger.Error("User gRPC client failed to connect on %q: %v", opt.Config.URL, err)
+		return nil, nil, err
 	}
 
-	if response.Status == healthpb.HealthCheckResponse_NOT_SERVING {
-		logger.Error("User gRPC health check failed!")
-		return errors.New("User gRPC health check failed")
+	logger.Info("User gRPC client connected on %q", opt.Config.URL)
+
+	UserClient := opt.Factory(
+		userpb.NewUserServiceClient(conn),
+		healthpb.NewHealthClient(conn),
+		opt.Config,
+	)
+
+	if !opt.SkipHealthCheck {
+		if err := UserClient.Health(ctx); err != nil {
+			return nil, nil, err
+		}
 	}
 
-	return nil
+	logger.Info("User gRPC client ready on %q", opt.Config.URL)
+	return UserClient, conn, nil
 }

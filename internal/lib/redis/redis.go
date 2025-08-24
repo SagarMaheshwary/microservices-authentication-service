@@ -11,67 +11,66 @@ import (
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
 )
 
-var ctx = context.Background()
-var client *redislib.Client
+type RedisService interface {
+	Get(ctx context.Context, key string) (string, error)
+	Set(ctx context.Context, key string, val string, expiry time.Duration) error
+	Del(ctx context.Context, key string) error
+	Health(ctx context.Context) error
+	Close() error
+}
 
-func InitClient() error {
-	c := config.Conf.Redis
+type RedisClient struct {
+	Client *redislib.Client
+}
 
-	addr := fmt.Sprintf("%s:%d", c.Host, c.Port)
+func NewClient(cfg *config.Redis) (*RedisClient, error) {
+	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 
-	client = redislib.NewClient(&redislib.Options{
+	client := redislib.NewClient(&redislib.Options{
 		Addr:     addr,
-		Username: c.Username,
-		Password: c.Password,
+		Username: cfg.Username,
+		Password: cfg.Password,
 	})
 
-	if err := HealthCheck(); err != nil {
-		logger.Error("Unable to connect to redis")
+	r := &RedisClient{Client: client}
 
+	if err := r.Health(context.Background()); err != nil {
+		logger.Error("%v", err)
+		return nil, err
+	}
+
+	logger.Info("Redis server connected on %s", addr)
+
+	return r, nil
+}
+
+func (r *RedisClient) Get(ctx context.Context, key string) (string, error) {
+	return r.Client.Get(ctx, key).Result()
+}
+
+func (r *RedisClient) Set(ctx context.Context, key string, val string, expiry time.Duration) error {
+	return r.Client.Set(ctx, key, val, expiry).Err()
+}
+
+func (r *RedisClient) Del(ctx context.Context, key string) error {
+	return r.Client.Del(ctx, key).Err()
+}
+
+func (r *RedisClient) Health(ctx context.Context) error {
+	for i := 0; i < 5; i++ {
+		if pong := r.Client.Ping(ctx); pong.Val() == "PONG" {
+			return nil
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return errors.New("redis health check failed after retries")
+}
+
+func (r *RedisClient) Close() error {
+	if err := r.Client.Close(); err != nil {
+		logger.Error("Redis client close error %v", err)
 		return err
 	}
 
-	logger.Info("Redis server connected on %q", addr)
-
 	return nil
-}
-
-func HealthCheck() error {
-	if pong := client.Ping(ctx); pong.Val() != "PONG" {
-		logger.Error("Redis health check failed! %q", pong.Val())
-
-		return errors.New("Redis health check failed")
-	}
-
-	return nil
-}
-
-func Get(key string) (string, error) {
-	r, err := client.Get(ctx, key).Result()
-
-	if err != nil {
-		logger.Error(`Redis get key "%s" failed %v`, key, err)
-	}
-
-	return r, err
-}
-
-func Set(key string, val string, exp time.Duration) error {
-	err := client.Set(ctx, key, val, exp).Err()
-
-	if err != nil {
-		logger.Error(`Redis set key "%s",value "%s"  failed %v`, key, val, err)
-	}
-
-	return err
-}
-
-func Del(key string) error {
-	err := client.Del(ctx, key).Err()
-
-	if err != nil {
-		logger.Error(`Redis delete key "%s" failed %v`, key, err)
-	}
-
-	return err
 }

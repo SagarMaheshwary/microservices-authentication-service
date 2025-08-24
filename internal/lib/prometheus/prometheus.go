@@ -5,7 +5,6 @@ import (
 
 	prometheuslib "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sagarmaheshwary/microservices-authentication-service/internal/config"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
 )
 
@@ -33,26 +32,32 @@ var (
 	})
 )
 
-func NewServer() *http.Server {
-	prometheuslib.MustRegister(GRPCRequestCounter, GRPCRequestLatency, ServiceHealth)
-
-	url := config.Conf.Prometheus.URL
-
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
-
-	server := &http.Server{Addr: url, Handler: mux}
-
-	return server
+func RegisterMetrics(registry *prometheuslib.Registry) {
+	registry.MustRegister(
+		GRPCRequestCounter,
+		GRPCRequestLatency,
+		ServiceHealth,
+	)
 }
 
-func Serve(server *http.Server) error {
+func NewServer(url string, registry *prometheuslib.Registry) *http.Server {
+	RegisterMetrics(registry)
+
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.HandlerFor(
+		registry,
+		promhttp.HandlerOpts{},
+	))
+
+	return &http.Server{Addr: url, Handler: mux}
+}
+
+func Serve(server *http.Server, listen func() error) error {
 	logger.Info("Starting Prometheus metrics server %s", server.Addr)
 
-	if err := server.ListenAndServe(); err != nil {
+	if err := listen(); err != nil && err != http.ErrServerClosed {
 		logger.Error("Prometheus http server error! %v", err)
 		return err
 	}
-
 	return nil
 }

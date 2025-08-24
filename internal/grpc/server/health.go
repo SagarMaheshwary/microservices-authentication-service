@@ -3,19 +3,28 @@ package server
 import (
 	"context"
 
-	userrpc "github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client/user"
+	user "github.com/sagarmaheshwary/microservices-authentication-service/internal/grpc/client/user"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/logger"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/prometheus"
 	"github.com/sagarmaheshwary/microservices-authentication-service/internal/lib/redis"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
-type healthServer struct {
+type HealthServer struct {
 	healthpb.HealthServer
+	UserClient  user.UserService
+	RedisClient redis.RedisService
 }
 
-func (h *healthServer) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
-	status := getServicesHealthStatus(ctx)
+func (h *HealthServer) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
+	status := healthpb.HealthCheckResponse_SERVING
+	if err := h.RedisClient.Health(ctx); err != nil {
+		status = healthpb.HealthCheckResponse_NOT_SERVING
+	}
+
+	if err := h.UserClient.Health(ctx); err != nil {
+		status = healthpb.HealthCheckResponse_NOT_SERVING
+	}
 
 	logger.Info("Overall health status: %q", status)
 
@@ -30,16 +39,4 @@ func (h *healthServer) Check(ctx context.Context, req *healthpb.HealthCheckReque
 
 	prometheus.ServiceHealth.Set(1)
 	return response, nil
-}
-
-func getServicesHealthStatus(ctx context.Context) healthpb.HealthCheckResponse_ServingStatus {
-	if err := redis.HealthCheck(); err != nil {
-		return healthpb.HealthCheckResponse_NOT_SERVING
-	}
-
-	if err := userrpc.HealthCheck(ctx); err != nil {
-		return healthpb.HealthCheckResponse_NOT_SERVING
-	}
-
-	return healthpb.HealthCheckResponse_SERVING
 }
